@@ -1,0 +1,11 @@
+# for Watermill development purposes.
+# For Watermill based application docker please check https://watermill.io/docs/getting-started/
+
+version: '3'
+services:
+  nats-streaming:
+    image: nats-streaming:0.11.2
+    ports:
+      - 4222:4222
+    restart: unless-stopped
+    entrypoint: ["/nats-streaming-server", "--max_channels=0"]
