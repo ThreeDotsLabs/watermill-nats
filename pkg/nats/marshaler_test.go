@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ThreeDotsLabs/watermill/message/infrastructure/nats"
+	"github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
 	"github.com/nats-io/stan.go/pb"
 	"github.com/stretchr/testify/require"
 

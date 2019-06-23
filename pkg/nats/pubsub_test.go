@@ -8,7 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/infrastructure"
-	"github.com/ThreeDotsLabs/watermill/message/infrastructure/nats"
+	"github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
 	stan "github.com/nats-io/stan.go"
 	"github.com/stretchr/testify/require"
 )
