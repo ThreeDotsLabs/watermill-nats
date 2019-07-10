@@ -222,9 +222,9 @@ func NewStreamingSubscriberWithStanConn(conn stan.Conn, config StreamingSubscrib
 // Subscribe will spawn SubscribersCount goroutines making subscribe.
 func (s *StreamingSubscriber) Subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
 	output := make(chan *message.Message, 0)
-	s.outputsWg.Add(1)
 
 	for i := 0; i < s.config.SubscribersCount; i++ {
+		s.outputsWg.Add(1)
 		subscriberLogFields := watermill.LogFields{
 			"subscriber_num": i,
 			"topic":          topic,
@@ -251,7 +251,6 @@ func (s *StreamingSubscriber) Subscribe(ctx context.Context, topic string) (<-ch
 			}
 
 			processMessagesWg.Wait()
-			close(output)
 			s.outputsWg.Done()
 		}(sub, subscriberLogFields)
 
@@ -259,6 +258,11 @@ func (s *StreamingSubscriber) Subscribe(ctx context.Context, topic string) (<-ch
 		s.subs = append(s.subs, sub)
 		s.subsLock.Unlock()
 	}
+
+	go func() {
+		s.outputsWg.Wait()
+		close(output)
+	}()
 
 	return output, nil
 }
