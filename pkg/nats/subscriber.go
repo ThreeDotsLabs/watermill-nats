@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	internalSync "github.com/ThreeDotsLabs/watermill/message/infrastructure/sync"
-	stan "github.com/nats-io/stan.go"
+	internalSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
+
+	"github.com/nats-io/stan.go"
 	"github.com/pkg/errors"
 
 	"github.com/ThreeDotsLabs/watermill"
