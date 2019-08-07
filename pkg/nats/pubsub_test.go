@@ -36,7 +36,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		ClientID:         clientID + "_sub",
 		QueueGroup:       queueName,
 		DurableName:      "durable-name",
-		SubscribersCount: 1,
+		SubscribersCount: 10,
 		AckWaitTimeout:   time.Second, // AckTiemout < 5 required for continueAfterErrors
 		Unmarshaler:      nats.GobMarshaler{},
 		StanOptions: []stan.Option{
