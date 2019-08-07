@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/message/infrastructure"
 	"github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
+	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
 	stan "github.com/nats-io/stan.go"
 	"github.com/stretchr/testify/require"
 )
@@ -57,9 +57,9 @@ func createPubSubWithDurable(t *testing.T, consumerGroup string) (message.Publis
 }
 
 func TestPublishSubscribe(t *testing.T) {
-	infrastructure.TestPubSub(
+	tests.TestPubSub(
 		t,
-		infrastructure.Features{
+		tests.Features{
 			ConsumerGroups:      true,
 			ExactlyOnceDelivery: false,
 			GuaranteedOrder:     false,
