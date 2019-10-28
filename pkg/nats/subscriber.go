@@ -129,7 +129,7 @@ func (c *StreamingSubscriberConfig) GetStreamingSubscriberSubscriptionConfig() S
 	}
 }
 
-func (c *StreamingSubscriberConfig) setDefaults() {
+func (c *StreamingSubscriberSubscriptionConfig) setDefaults() {
 	if c.SubscribersCount <= 0 {
 		c.SubscribersCount = 1
 	}
@@ -192,8 +192,6 @@ type StreamingSubscriber struct {
 //		}
 //		// ...
 func NewStreamingSubscriber(config StreamingSubscriberConfig, logger watermill.LoggerAdapter) (*StreamingSubscriber, error) {
-	config.setDefaults()
-
 	conn, err := stan.Connect(config.ClusterID, config.ClientID, config.StanOptions...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot connect to NATS")
@@ -202,6 +200,8 @@ func NewStreamingSubscriber(config StreamingSubscriberConfig, logger watermill.L
 }
 
 func NewStreamingSubscriberWithStanConn(conn stan.Conn, config StreamingSubscriberSubscriptionConfig, logger watermill.LoggerAdapter) (*StreamingSubscriber, error) {
+	config.setDefaults()
+
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
