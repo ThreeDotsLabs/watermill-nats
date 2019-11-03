@@ -9,7 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill-nats/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
-	stan "github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,13 +21,16 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		natsURL = "nats://localhost:4222"
 	}
 
+	options := []stan.Option{
+		stan.NatsURL(natsURL),
+		stan.ConnectWait(time.Second * 15),
+	}
+
 	pub, err := nats.NewStreamingPublisher(nats.StreamingPublisherConfig{
-		ClusterID: "test-cluster",
-		ClientID:  clientID + "_pub",
-		Marshaler: nats.GobMarshaler{},
-		StanOptions: []stan.Option{
-			stan.NatsURL(natsURL),
-		},
+		ClusterID:   "test-cluster",
+		ClientID:    clientID + "_pub",
+		Marshaler:   nats.GobMarshaler{},
+		StanOptions: options,
 	}, logger)
 	require.NoError(t, err)
 
@@ -39,9 +42,7 @@ func newPubSub(t *testing.T, clientID string, queueName string) (message.Publish
 		SubscribersCount: 10,
 		AckWaitTimeout:   time.Second, // AckTiemout < 5 required for continueAfterErrors
 		Unmarshaler:      nats.GobMarshaler{},
-		StanOptions: []stan.Option{
-			stan.NatsURL(natsURL),
-		},
+		StanOptions:      options,
 	}, logger)
 	require.NoError(t, err)
 
