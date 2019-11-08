@@ -363,6 +363,7 @@ func (s *StreamingSubscriber) processMessage(
 	case <-msg.Acked():
 		if err := m.Ack(); err != nil {
 			s.logger.Error("Cannot send ack", err, messageLogFields)
+			return
 		}
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
