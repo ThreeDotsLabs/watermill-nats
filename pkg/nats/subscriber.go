@@ -247,7 +247,7 @@ func (s *StreamingSubscriber) Subscribe(ctx context.Context, topic string) (<-ch
 			case <-ctx.Done():
 				// unblock
 			}
-			if err := sub.Close(); err != nil {
+			if err := subscriber.Close(); err != nil {
 				s.logger.Error("Cannot close subscriber", err, subscriberLogFields)
 			}
 
