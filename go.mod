@@ -3,7 +3,7 @@ module github.com/ThreeDotsLabs/watermill-nats
 go 1.17
 
 require (
-	github.com/ThreeDotsLabs/watermill v1.2.0-rc.6
+	github.com/ThreeDotsLabs/watermill v1.2.0-rc.7
 	github.com/nats-io/stan.go v0.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
