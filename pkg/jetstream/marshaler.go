@@ -1,4 +1,4 @@
-package nats
+package jetstream
 
 import (
 	"bytes"

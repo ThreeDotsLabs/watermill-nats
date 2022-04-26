@@ -1,4 +1,4 @@
-package nats
+package jetstream
 
 import (
 	"context"
@@ -31,6 +31,18 @@ type SubscriberConfig struct {
 	// When QueueGroup is empty, subscribe without QueueGroup will be used.
 	QueueGroup string
 
+	// DurableName is the JetStream durable name.
+	//
+	// Subscriptions may also specify a “durable name” which will survive client restarts.
+	// Durable subscriptions cause the server to track the last acknowledged message
+	// sequence number for a client and durable name. When the client restarts/resubscribes,
+	// and uses the same client ID and durable name, the server will resume delivery beginning
+	// with the earliest unacknowledged message for this durable subscription.
+	//
+	// Doing this causes the JetStream server to track
+	// the last acknowledged message for that ClientID + DurableName.
+	DurableName string
+
 	// SubscribersCount determines how many concurrent subscribers should be started.
 	SubscribersCount int
 
@@ -50,11 +62,20 @@ type SubscriberConfig struct {
 	// 		nats.URL("nats://localhost:4222")
 	NatsOptions []nats.Option
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
 
+	// SubscribeOptions defines nats options to be used when subscribing
+	SubscribeOptions []nats.SubOpt
+
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
@@ -78,6 +99,18 @@ type SubscriberSubscriptionConfig struct {
 	// When QueueGroup is empty, subscribe without QueueGroup will be used.
 	QueueGroup string
 
+	// DurableName is the JetStream durable name.
+	//
+	// Subscriptions may also specify a “durable name” which will survive client restarts.
+	// Durable subscriptions cause the server to track the last acknowledged message
+	// sequence number for a client and durable name. When the client restarts/resubscribes,
+	// and uses the same client ID and durable name, the server will resume delivery beginning
+	// with the earliest unacknowledged message for this durable subscription.
+	//
+	// Doing this causes the JetStream server to track
+	// the last acknowledged message for that ClientID + DurableName.
+	DurableName string
+
 	// SubscribersCount determines wow much concurrent subscribers should be started.
 	SubscribersCount int
 
@@ -92,8 +125,17 @@ type SubscriberSubscriptionConfig struct {
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
 	SubscribeTimeout time.Duration
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
+	// SubscribeOptions defines nats options to be used when subscribing
+	SubscribeOptions []nats.SubOpt
+
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
@@ -104,11 +146,15 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 	return SubscriberSubscriptionConfig{
 		Unmarshaler:       c.Unmarshaler,
 		QueueGroup:        c.QueueGroup,
+		DurableName:       c.DurableName,
 		SubscribersCount:  c.SubscribersCount,
 		AckWaitTimeout:    c.AckWaitTimeout,
 		CloseTimeout:      c.CloseTimeout,
 		SubscribeTimeout:  c.SubscribeTimeout,
+		SubscribeOptions:  c.SubscribeOptions,
 		SubjectCalculator: c.SubjectCalculator,
+		AutoProvision:     c.AutoProvision,
+		JetstreamOptions:  c.JetstreamOptions,
 		AckSync:           c.AckSync,
 	}
 }
@@ -166,6 +212,7 @@ type Subscriber struct {
 	closing chan struct{}
 
 	outputsWg        sync.WaitGroup
+	js               nats.JetStream
 	topicInterpreter *topicInterpreter
 }
 
@@ -190,11 +237,19 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 		logger = watermill.NopLogger{}
 	}
 
+	js, err := conn.JetStream(config.JetstreamOptions...)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &Subscriber{
-		conn:    conn,
-		logger:  logger,
-		config:  config,
-		closing: make(chan struct{}),
+		conn:             conn,
+		logger:           logger,
+		config:           config,
+		closing:          make(chan struct{}),
+		js:               js,
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -246,13 +301,40 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 	return output, nil
 }
 
+// SubscribeInitialize offers a way to ensure the stream for a topic exists prior to subscribe
+func (s *Subscriber) SubscribeInitialize(topic string) error {
+	err := s.topicInterpreter.ensureStream(topic)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot initialize subscribe")
+	}
+
+	return nil
+}
+
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
+	if s.config.AutoProvision {
+		err := s.SubscribeInitialize(topic)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	primarySubject := s.config.SubjectCalculator(topic).Primary
 
-	return s.conn.QueueSubscribe(
+	opts := s.config.SubscribeOptions
+
+	if s.config.DurableName != "" {
+		opts = append(opts, nats.Durable(s.config.DurableName))
+	} else {
+		opts = append(opts, nats.BindStream(""))
+	}
+
+	return s.js.QueueSubscribe(
 		primarySubject,
 		s.config.QueueGroup,
 		cb,
+		opts...,
 	)
 }
 
@@ -295,20 +377,18 @@ func (s *Subscriber) processMessage(
 
 	select {
 	case <-msg.Acked():
-		/*
-			var err error
+		var err error
 
-			if s.config.AckSync {
-				err = m.AckSync()
-			} else {
-				err = m.Ack()
-			}
+		if s.config.AckSync {
+			err = m.AckSync()
+		} else {
+			err = m.Ack()
+		}
 
-			if err != nil {
-				s.logger.Error("Cannot send ack", err, messageLogFields)
-				return
-			}
-		*/
+		if err != nil {
+			s.logger.Error("Cannot send ack", err, messageLogFields)
+			return
+		}
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
 		if err := m.Nak(); err != nil {

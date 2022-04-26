@@ -1,6 +1,7 @@
+//go:build stress
 // +build stress
 
-package nats_test
+package jetstream_test
 
 import (
 	"testing"
@@ -11,13 +12,8 @@ import (
 func TestPublishSubscribe_stress(t *testing.T) {
 	tests.TestPubSubStressTest(
 		t,
-		tests.Features{
-			ConsumerGroups:      true,
-			ExactlyOnceDelivery: false,
-			GuaranteedOrder:     false,
-			Persistent:          true,
-		},
+		getTestFeatures(),
 		createPubSub,
-		createPubSubWithDurable,
+		createPubSubWithConsumerGroup,
 	)
 }

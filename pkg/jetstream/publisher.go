@@ -1,4 +1,4 @@
-package nats
+package jetstream
 
 import (
 	"github.com/ThreeDotsLabs/watermill"
@@ -15,14 +15,23 @@ type PublisherConfig struct {
 	// NatsOptions are custom options for a connection.
 	NatsOptions []nats.Option
 
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
+
 	// PublishOptions are custom publish option to be used on all publication
 	PublishOptions []nats.PubOpt
+
+	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication
+	TrackMsgId bool
 }
 
 // PublisherPublishConfig is the configuration subset needed for an individual publish call
@@ -32,6 +41,15 @@ type PublisherPublishConfig struct {
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
+
+	// AutoProvision bypasses client validation and provisioning of streams
+	AutoProvision bool
+
+	// JetstreamOptions are custom Jetstream options for a connection.
+	JetstreamOptions []nats.JSOpt
+
+	// PublishOptions are custom publish option to be used on all publication
+	PublishOptions []nats.PubOpt
 
 	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication
 	TrackMsgId bool
@@ -60,6 +78,10 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 	return PublisherPublishConfig{
 		Marshaler:         c.Marshaler,
 		SubjectCalculator: c.SubjectCalculator,
+		AutoProvision:     c.AutoProvision,
+		JetstreamOptions:  c.JetstreamOptions,
+		PublishOptions:    c.PublishOptions,
+		TrackMsgId:        c.TrackMsgId,
 	}
 }
 
@@ -68,6 +90,7 @@ type Publisher struct {
 	conn             *nats.Conn
 	config           PublisherPublishConfig
 	logger           watermill.LoggerAdapter
+	js               nats.JetStream
 	topicInterpreter *topicInterpreter
 }
 
@@ -93,10 +116,18 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 		logger = watermill.NopLogger{}
 	}
 
+	js, err := conn.JetStream(config.JetstreamOptions...)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &Publisher{
-		conn:   conn,
-		config: config,
-		logger: logger,
+		conn:             conn,
+		config:           config,
+		logger:           logger,
+		js:               js,
+		topicInterpreter: newTopicInterpreter(js, config.SubjectCalculator),
 	}, nil
 }
 
@@ -105,6 +136,13 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 // Publish will not return until an ack has been received from JetStream.
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
+	if p.config.AutoProvision {
+		err := p.topicInterpreter.ensureStream(topic)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, msg := range messages {
 		messageFields := watermill.LogFields{
 			"message_uuid": msg.UUID,
@@ -118,7 +156,13 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			return err
 		}
 
-		if err := p.conn.PublishMsg(natsMsg); err != nil {
+		publishOpts := p.config.PublishOptions
+
+		if p.config.TrackMsgId {
+			publishOpts = append(publishOpts, nats.MsgId(msg.UUID))
+		}
+
+		if _, err := p.js.PublishMsg(natsMsg, publishOpts...); err != nil {
 			return errors.Wrap(err, "sending message failed")
 		}
 	}

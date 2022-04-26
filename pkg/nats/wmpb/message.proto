@@ -1,0 +1,11 @@
+syntax="proto3";
+
+option go_package = "wmpb";
+
+package wmpb;
+
+message Message {
+  string uuid = 1;
+  map<string, string> metadata = 2;
+  bytes payload = 3;
+}
