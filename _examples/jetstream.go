@@ -8,10 +8,23 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 )
 
 func main() {
+	svr, err := server.NewServer(&server.Options{
+		Port:      42222,
+		JetStream: true,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	svr.Start()
+	defer svr.Shutdown()
+
 	marshaler := &jetstream.GobMarshaler{}
 	logger := watermill.NewStdLogger(false, false)
 	options := []nats.Option{
@@ -26,7 +39,7 @@ func main() {
 
 	subscriber, err := jetstream.NewSubscriber(
 		jetstream.SubscriberConfig{
-			URL:              nats.DefaultURL,
+			URL:              svr.ClientURL(),
 			CloseTimeout:     30 * time.Second,
 			AckWaitTimeout:   30 * time.Second,
 			NatsOptions:      options,
@@ -49,7 +62,7 @@ func main() {
 
 	publisher, err := jetstream.NewPublisher(
 		jetstream.PublisherConfig{
-			URL:         nats.DefaultURL,
+			URL:         svr.ClientURL(),
 			NatsOptions: options,
 			Marshaler:   marshaler,
 		},

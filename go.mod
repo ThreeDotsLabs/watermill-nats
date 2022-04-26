@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/ThreeDotsLabs/watermill v1.2.0-rc.10
 	github.com/google/uuid v1.3.0
-	github.com/nats-io/nats.go v1.13.1-0.20220202232944-a0a6a71ede98
+	github.com/nats-io/nats.go v1.14.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/protobuf v1.28.0

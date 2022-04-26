@@ -8,10 +8,22 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	wmnats "github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 )
 
 func main() {
+	svr, err := server.NewServer(&server.Options{
+		Port: 42222,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	svr.Start()
+	defer svr.Shutdown()
+
 	marshaler := &wmnats.GobMarshaler{}
 	logger := watermill.NewStdLogger(false, false)
 	options := []nats.Option{
@@ -22,7 +34,7 @@ func main() {
 
 	subscriber, err := wmnats.NewSubscriber(
 		wmnats.SubscriberConfig{
-			URL:            nats.DefaultURL,
+			URL:            svr.ClientURL(),
 			CloseTimeout:   30 * time.Second,
 			AckWaitTimeout: 30 * time.Second,
 			NatsOptions:    options,
@@ -43,7 +55,7 @@ func main() {
 
 	publisher, err := wmnats.NewPublisher(
 		wmnats.PublisherConfig{
-			URL:         nats.DefaultURL,
+			URL:         svr.ClientURL(),
 			NatsOptions: options,
 			Marshaler:   marshaler,
 		},
