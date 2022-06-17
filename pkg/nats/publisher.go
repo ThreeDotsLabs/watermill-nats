@@ -2,6 +2,7 @@ package nats
 
 import (
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
@@ -16,10 +17,10 @@ type PublisherConfig struct {
 	NatsOptions []nats.Option
 
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
-	Marshaler Marshaler
+	Marshaler msg.Marshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// PublishOptions are custom publish option to be used on all publication
 	PublishOptions []nats.PubOpt
@@ -28,10 +29,10 @@ type PublisherConfig struct {
 // PublisherPublishConfig is the configuration subset needed for an individual publish call
 type PublisherPublishConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
-	Marshaler Marshaler
+	Marshaler msg.Marshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication
 	TrackMsgId bool
@@ -39,7 +40,7 @@ type PublisherPublishConfig struct {
 
 func (c *PublisherConfig) setDefaults() {
 	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = defaultSubjectCalculator
+		c.SubjectCalculator = msg.DefaultSubjectCalculator
 	}
 }
 
@@ -65,10 +66,9 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 
 // Publisher provides the jetstream implementation for watermill publish operations
 type Publisher struct {
-	conn             *nats.Conn
-	config           PublisherPublishConfig
-	logger           watermill.LoggerAdapter
-	topicInterpreter *topicInterpreter
+	conn   *nats.Conn
+	config PublisherPublishConfig
+	logger watermill.LoggerAdapter
 }
 
 // NewPublisher creates a new Publisher.

@@ -8,7 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats/wmpb"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
 	"github.com/nats-io/nats.go"
@@ -32,19 +32,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	debug := os.Getenv("WATERMILL_TEST_NATS_DEBUG")
 
 	format := os.Getenv("WATERMILL_TEST_NATS_FORMAT")
-
-	var marshaler jetstream.MarshalerUnmarshaler
-
-	switch strings.ToLower(format) {
-	case "nats":
-		marshaler = &jetstream.NATSMarshaler{}
-	case "proto":
-		marshaler = &wmpb.NATSMarshaler{}
-	case "json":
-		marshaler = &jetstream.JSONMarshaler{}
-	default:
-		marshaler = &jetstream.GobMarshaler{}
-	}
+	marshaler := msg.GetMarshaler(format)
 
 	logger := watermill.NewStdLogger(strings.ToLower(debug) == "true", strings.ToLower(trace) == "true")
 

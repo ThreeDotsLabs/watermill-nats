@@ -2,6 +2,7 @@ package jetstream
 
 import (
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
@@ -19,10 +20,10 @@ type PublisherConfig struct {
 	JetstreamOptions []nats.JSOpt
 
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
-	Marshaler Marshaler
+	Marshaler msg.Marshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
@@ -37,10 +38,10 @@ type PublisherConfig struct {
 // PublisherPublishConfig is the configuration subset needed for an individual publish call
 type PublisherPublishConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
-	Marshaler Marshaler
+	Marshaler msg.Marshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
@@ -57,7 +58,7 @@ type PublisherPublishConfig struct {
 
 func (c *PublisherConfig) setDefaults() {
 	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = defaultSubjectCalculator
+		c.SubjectCalculator = msg.DefaultSubjectCalculator
 	}
 }
 

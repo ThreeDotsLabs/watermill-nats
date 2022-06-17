@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	watermillSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
 	"github.com/nats-io/nats.go"
@@ -66,13 +67,13 @@ type SubscriberConfig struct {
 	JetstreamOptions []nats.JSOpt
 
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler Unmarshaler
+	Unmarshaler msg.Unmarshaler
 
 	// SubscribeOptions defines nats options to be used when subscribing
 	SubscribeOptions []nats.SubOpt
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
@@ -84,7 +85,7 @@ type SubscriberConfig struct {
 // SubscriberSubscriptionConfig is the configurationz
 type SubscriberSubscriptionConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler Unmarshaler
+	Unmarshaler msg.Unmarshaler
 	// QueueGroup is the JetStream queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
@@ -132,7 +133,7 @@ type SubscriberSubscriptionConfig struct {
 	SubscribeOptions []nats.SubOpt
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AutoProvision bypasses client validation and provisioning of streams
 	AutoProvision bool
@@ -174,7 +175,7 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	}
 
 	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = defaultSubjectCalculator
+		c.SubjectCalculator = msg.DefaultSubjectCalculator
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -25,7 +26,7 @@ func main() {
 	svr.Start()
 	defer svr.Shutdown()
 
-	marshaler := &jetstream.GobMarshaler{}
+	marshaler := &msg.GobMarshaler{}
 	logger := watermill.NewStdLogger(false, false)
 	options := []nats.Option{
 		nats.RetryOnFailedConnect(true),

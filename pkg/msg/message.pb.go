@@ -4,7 +4,7 @@
 // 	protoc        v3.12.4
 // source: message.proto
 
-package wmpb
+package msg
 
 import (
 	reflect "reflect"

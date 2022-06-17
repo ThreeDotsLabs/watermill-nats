@@ -1,4 +1,4 @@
-package jetstream
+package msg
 
 import (
 	"bytes"

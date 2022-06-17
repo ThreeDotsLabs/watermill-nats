@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	wmnats "github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats-server/v2/server"
@@ -24,7 +25,7 @@ func main() {
 	svr.Start()
 	defer svr.Shutdown()
 
-	marshaler := &wmnats.GobMarshaler{}
+	marshaler := &msg.GobMarshaler{}
 	logger := watermill.NewStdLogger(false, false)
 	options := []nats.Option{
 		nats.RetryOnFailedConnect(true),

@@ -3,19 +3,20 @@ package jetstream
 import (
 	"testing"
 
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPublisherConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name              string
-		marshaler         Marshaler
-		subjectCalculator func(string) *Subjects
+		marshaler         msg.Marshaler
+		subjectCalculator func(string) *msg.Subjects
 		wantErr           bool
 	}{
-		{name: "OK", marshaler: &GobMarshaler{}, wantErr: false, subjectCalculator: defaultSubjectCalculator},
-		{name: "Invalid - No Marshaler", marshaler: nil, wantErr: true, subjectCalculator: defaultSubjectCalculator},
-		{name: "Invalid - No Subject Calculator", marshaler: &GobMarshaler{}, wantErr: true, subjectCalculator: nil},
+		{name: "OK", marshaler: &msg.GobMarshaler{}, wantErr: false, subjectCalculator: msg.DefaultSubjectCalculator},
+		{name: "Invalid - No Marshaler", marshaler: nil, wantErr: true, subjectCalculator: msg.DefaultSubjectCalculator},
+		{name: "Invalid - No Subject Calculator", marshaler: &msg.GobMarshaler{}, wantErr: true, subjectCalculator: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

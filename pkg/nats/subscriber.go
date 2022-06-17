@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	watermillSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
 	"github.com/nats-io/nats.go"
@@ -51,10 +52,10 @@ type SubscriberConfig struct {
 	NatsOptions []nats.Option
 
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler Unmarshaler
+	Unmarshaler msg.Unmarshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
@@ -63,7 +64,7 @@ type SubscriberConfig struct {
 // SubscriberSubscriptionConfig is the configurationz
 type SubscriberSubscriptionConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler Unmarshaler
+	Unmarshaler msg.Unmarshaler
 	// QueueGroup is the JetStream queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
@@ -93,7 +94,7 @@ type SubscriberSubscriptionConfig struct {
 	SubscribeTimeout time.Duration
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator SubjectCalculator
+	SubjectCalculator msg.SubjectCalculator
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
@@ -128,7 +129,7 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	}
 
 	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = defaultSubjectCalculator
+		c.SubjectCalculator = msg.DefaultSubjectCalculator
 	}
 }
 
@@ -165,8 +166,7 @@ type Subscriber struct {
 	closed  bool
 	closing chan struct{}
 
-	outputsWg        sync.WaitGroup
-	topicInterpreter *topicInterpreter
+	outputsWg sync.WaitGroup
 }
 
 // NewSubscriber creates a new Subscriber.
