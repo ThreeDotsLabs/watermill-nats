@@ -28,9 +28,9 @@ type MarshalerUnmarshaler interface {
 	Unmarshaler
 }
 
-func defaultNatsMsg(topic string, uuid string, data []byte, hdr nats.Header) *nats.Msg {
+func defaultNatsMsg(topic string, data []byte, hdr nats.Header) *nats.Msg {
 	return &nats.Msg{
-		Subject: PublishSubject(topic, uuid),
+		Subject: topic,
 		Data:    data,
 		Header:  hdr,
 	}
@@ -48,7 +48,7 @@ func (GobMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, erro
 		return nil, errors.Wrap(err, "cannot encode message")
 	}
 
-	return defaultNatsMsg(topic, msg.UUID, buf.Bytes(), nil), nil
+	return defaultNatsMsg(topic, buf.Bytes(), nil), nil
 }
 
 // Unmarshal extracts a watermill message from a nats message.
@@ -84,7 +84,7 @@ func (JSONMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, err
 		return nil, errors.Wrap(err, "cannot encode message")
 	}
 
-	return defaultNatsMsg(topic, msg.UUID, bytes, nil), nil
+	return defaultNatsMsg(topic, bytes, nil), nil
 }
 
 // Unmarshal extracts a watermill message from a nats message.
@@ -120,9 +120,8 @@ func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, er
 	}
 
 	data := msg.Payload
-	id := msg.UUID
 
-	return defaultNatsMsg(topic, id, data, header), nil
+	return defaultNatsMsg(topic, data, header), nil
 }
 
 // Unmarshal extracts a watermill message from a nats message.

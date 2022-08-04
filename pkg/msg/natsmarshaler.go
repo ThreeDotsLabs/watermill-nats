@@ -21,7 +21,7 @@ func (*PBMarshaler) Marshal(topic string, m *message.Message) (*nats.Msg, error)
 		return nil, err
 	}
 
-	natsMsg := nats.NewMsg(PublishSubject(topic, m.UUID))
+	natsMsg := nats.NewMsg(topic)
 	natsMsg.Data = data
 
 	return natsMsg, nil
