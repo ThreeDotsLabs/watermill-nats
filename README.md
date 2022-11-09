@@ -1,7 +1,7 @@
 # Watermill NATS Pub/Sub
 <img align="right" width="200" src="https://threedots.tech/watermill-io/watermill-logo.png">
 
-[![CircleCI](https://circleci.com/gh/ThreeDotsLabs/watermill-nats/tree/master.svg?style=svg)](https://circleci.com/gh/ThreeDotsLabs/watermill-nats/tree/master)
+[![CI Status](https://github.com/ThreeDotsLabs/watermill-nats/actions/workflows/master.yml/badge.svg)](https://github.com/ThreeDotsLabs/watermill-nats/actions/workflows/master.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ThreeDotsLabs/watermill-nats)](https://goreportcard.com/report/github.com/ThreeDotsLabs/watermill-nats)
 
 This is Pub/Sub for the [Watermill](https://watermill.io/) project.
