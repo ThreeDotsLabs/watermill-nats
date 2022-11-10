@@ -1,5 +1,5 @@
 up:
-	docker-compose up
+	docker-compose up -d
 
 test:
 	go test -parallel 20 ./...
@@ -18,6 +18,12 @@ test_stress:
 
 test_reconnect:
 	go test -tags=reconnect ./...
+
+wait:
+	go run github.com/ThreeDotsLabs/wait-for@latest localhost:4222
+
+build:
+	go build ./...
 
 fmt:
 	go fmt ./...
