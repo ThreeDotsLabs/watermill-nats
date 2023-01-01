@@ -1,7 +1,7 @@
 //go:build reconnect
 // +build reconnect
 
-package jetstream_test
+package nats_test
 
 import (
 	"os"

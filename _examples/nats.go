@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
-	wmnats "github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
+	nc "github.com/nats-io/nats.go"
 )
 
 func main() {
@@ -25,16 +24,16 @@ func main() {
 	svr.Start()
 	defer svr.Shutdown()
 
-	marshaler := &msg.GobMarshaler{}
+	marshaler := &nats.GobMarshaler{}
 	logger := watermill.NewStdLogger(false, false)
-	options := []nats.Option{
-		nats.RetryOnFailedConnect(true),
-		nats.Timeout(30 * time.Second),
-		nats.ReconnectWait(1 * time.Second),
+	options := []nc.Option{
+		nc.RetryOnFailedConnect(true),
+		nc.Timeout(30 * time.Second),
+		nc.ReconnectWait(1 * time.Second),
 	}
 
-	subscriber, err := wmnats.NewSubscriber(
-		wmnats.SubscriberConfig{
+	subscriber, err := nats.NewSubscriber(
+		nats.SubscriberConfig{
 			URL:            svr.ClientURL(),
 			CloseTimeout:   30 * time.Second,
 			AckWaitTimeout: 30 * time.Second,
@@ -54,8 +53,8 @@ func main() {
 
 	go process(messages)
 
-	publisher, err := wmnats.NewPublisher(
-		wmnats.PublisherConfig{
+	publisher, err := nats.NewPublisher(
+		nats.PublisherConfig{
 			URL:         svr.ClientURL(),
 			NatsOptions: options,
 			Marshaler:   marshaler,

@@ -1,7 +1,7 @@
 //go:build exactlyonce
 // +build exactlyonce
 
-package jetstream_test
+package nats_test
 
 import (
 	"os"

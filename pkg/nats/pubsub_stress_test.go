@@ -1,7 +1,7 @@
 //go:build stress
 // +build stress
 
-package jetstream_test
+package nats_test
 
 import (
 	"testing"

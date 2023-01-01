@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/ThreeDotsLabs/watermill/message"
 	watermillSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
 	"github.com/nats-io/nats.go"
@@ -18,13 +17,13 @@ type SubscriberConfig struct {
 	// URL is the URL to the broker
 	URL string
 
-	// QueueGroup is the JetStream queue group.
+	// QueueGroup is the queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
 	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
 	// using queuing semantics.
 	//
-	// It is recommended to set it with DurableName.
+	// For JetStream is recommended to set it with DurableName.
 	// For non durable queue subscribers, when the last member leaves the group,
 	// that group is removed. A durable queue group (DurableName) allows you to have all members leave
 	// but still maintain state. When a member re-joins, it starts at the last position in that group.
@@ -52,26 +51,30 @@ type SubscriberConfig struct {
 	NatsOptions []nats.Option
 
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler msg.Unmarshaler
+	Unmarshaler Unmarshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator msg.SubjectCalculator
+	SubjectCalculator SubjectCalculator
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
+
+	// JetStream holds JetStream specific settings
+	JetStream JetStreamConfig
 }
 
 // SubscriberSubscriptionConfig is the configurationz
 type SubscriberSubscriptionConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
-	Unmarshaler msg.Unmarshaler
-	// QueueGroup is the JetStream queue group.
+	Unmarshaler Unmarshaler
+
+	// QueueGroup is the queue group.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
 	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
 	// using queuing semantics.
 	//
-	// It is recommended to set it with DurableName.
+	// For JetStream is recommended to set it with DurableName.
 	// For non durable queue subscribers, when the last member leaves the group,
 	// that group is removed. A durable queue group (DurableName) allows you to have all members leave
 	// but still maintain state. When a member re-joins, it starts at the last position in that group.
@@ -94,10 +97,13 @@ type SubscriberSubscriptionConfig struct {
 	SubscribeTimeout time.Duration
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
-	SubjectCalculator msg.SubjectCalculator
+	SubjectCalculator SubjectCalculator
 
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
+
+	// JetStream holds JetStream specific settings
+	JetStream JetStreamConfig
 }
 
 // GetSubscriberSubscriptionConfig gets the configuration subset needed for individual subscribe calls once a connection has been established
@@ -111,6 +117,7 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		SubscribeTimeout:  c.SubscribeTimeout,
 		SubjectCalculator: c.SubjectCalculator,
 		AckSync:           c.AckSync,
+		JetStream:         c.JetStream,
 	}
 }
 
@@ -129,7 +136,7 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	}
 
 	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = msg.DefaultSubjectCalculator
+		c.SubjectCalculator = DefaultSubjectCalculator
 	}
 }
 
@@ -154,9 +161,9 @@ func (c *SubscriberSubscriptionConfig) Validate() error {
 	return nil
 }
 
-// Subscriber provides the jetstream implementation for watermill subscribe operations
+// Subscriber provides the nats implementation for watermill subscribe operations
 type Subscriber struct {
-	conn   *nats.Conn
+	conn   Connection
 	logger watermill.LoggerAdapter
 
 	config SubscriberSubscriptionConfig
@@ -166,7 +173,8 @@ type Subscriber struct {
 	closed  bool
 	closing chan struct{}
 
-	outputsWg sync.WaitGroup
+	outputsWg        sync.WaitGroup
+	topicInterpreter *topicInterpreter
 }
 
 // NewSubscriber creates a new Subscriber.
@@ -178,7 +186,7 @@ func NewSubscriber(config SubscriberConfig, logger watermill.LoggerAdapter) (*Su
 	return NewSubscriberWithNatsConn(conn, config.GetSubscriberSubscriptionConfig(), logger)
 }
 
-// NewSubscriberWithNatsConn creates a new Subscriber with the provided nats connection.
+// NewSubscriberWithNatsConn creates a new Subscriber with the provided nats-core connection.
 func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionConfig, logger watermill.LoggerAdapter) (*Subscriber, error) {
 	config.setDefaults()
 
@@ -190,11 +198,27 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 		logger = watermill.NopLogger{}
 	}
 
+	var connection Connection = conn
+	var interpreter *topicInterpreter
+
+	if config.JetStream.Enabled {
+		js, err := conn.JetStream(config.JetStream.ConnectOptions...)
+
+		connection = &jsConnection{conn, js, config.JetStream}
+
+		if err != nil {
+			return nil, err
+		}
+
+		interpreter = newTopicInterpreter(js, config.SubjectCalculator)
+	}
+
 	return &Subscriber{
-		conn:    conn,
-		logger:  logger,
-		config:  config,
-		closing: make(chan struct{}),
+		conn:             connection,
+		logger:           logger,
+		config:           config,
+		closing:          make(chan struct{}),
+		topicInterpreter: interpreter,
 	}, nil
 }
 
@@ -246,7 +270,25 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 	return output, nil
 }
 
+// SubscribeInitialize offers a way to ensure the stream for a topic exists prior to subscribe
+func (s *Subscriber) SubscribeInitialize(topic string) error {
+	err := s.topicInterpreter.ensureStream(topic)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot initialize subscribe")
+	}
+
+	return nil
+}
+
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
+	if s.config.JetStream.Enabled && s.config.JetStream.AutoProvision {
+		err := s.SubscribeInitialize(topic)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	primarySubject := s.config.SubjectCalculator(topic).Primary
 
 	return s.conn.QueueSubscribe(
@@ -262,10 +304,6 @@ func (s *Subscriber) processMessage(
 	output chan *message.Message,
 	logFields watermill.LogFields,
 ) {
-	if s.isClosed() {
-		return
-	}
-
 	s.logger.Trace("Received message", logFields)
 
 	msg, err := s.config.Unmarshaler.Unmarshal(m)
@@ -274,12 +312,19 @@ func (s *Subscriber) processMessage(
 		return
 	}
 
+	messageLogFields := logFields.Add(watermill.LogFields{"message_uuid": msg.UUID})
+	s.logger.Trace("Unmarshaled message", messageLogFields)
+
 	ctx, cancelCtx := context.WithCancel(ctx)
 	msg.SetContext(ctx)
 	defer cancelCtx()
 
-	messageLogFields := logFields.Add(watermill.LogFields{"message_uuid": msg.UUID})
-	s.logger.Trace("Unmarshaled message", messageLogFields)
+	timeout := time.NewTimer(s.config.AckWaitTimeout)
+	defer timeout.Stop()
+
+	if s.isClosed() {
+		return
+	}
 
 	select {
 	case <-s.closing:
@@ -295,29 +340,35 @@ func (s *Subscriber) processMessage(
 
 	select {
 	case <-msg.Acked():
-		/*
-			var err error
+		if m.Reply == "" {
+			s.logger.Trace("ack without a reply subject is a no-op", messageLogFields)
+			return
+		}
+		var err error
 
-			if s.config.AckSync {
-				err = m.AckSync()
-			} else {
-				err = m.Ack()
-			}
+		if s.config.AckSync {
+			err = m.AckSync()
+		} else {
+			err = m.Ack()
+		}
 
-			if err != nil {
-				s.logger.Error("Cannot send ack", err, messageLogFields)
-				return
-			}
-		*/
+		if err != nil {
+			s.logger.Error("Cannot send ack", err, messageLogFields)
+			return
+		}
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
+		if m.Reply == "" {
+			s.logger.Trace("nack without a reply subject is a no-op", messageLogFields)
+			return
+		}
 		if err := m.Nak(); err != nil {
 			s.logger.Error("Cannot send nak", err, messageLogFields)
 			return
 		}
 		s.logger.Trace("Message Nacked", messageLogFields)
 		return
-	case <-time.After(s.config.AckWaitTimeout):
+	case <-timeout.C:
 		s.logger.Trace("Ack timeout", messageLogFields)
 		return
 	case <-s.closing:

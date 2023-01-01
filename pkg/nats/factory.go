@@ -1,4 +1,4 @@
-package msg
+package nats
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 
 func GetMarshaler(format string) MarshalerUnmarshaler {
 	switch strings.ToLower(format) {
-	case "nats":
+	case "nats-core":
 		return &NATSMarshaler{}
 	case "proto":
 		return &PBMarshaler{}

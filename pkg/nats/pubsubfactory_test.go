@@ -1,4 +1,4 @@
-package jetstream_test
+package nats_test
 
 import (
 	"os"
@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/tests"
-	"github.com/nats-io/nats.go"
+	nc "github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,19 +31,19 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	debug := os.Getenv("WATERMILL_TEST_NATS_DEBUG")
 
 	format := os.Getenv("WATERMILL_TEST_NATS_FORMAT")
-	marshaler := msg.GetMarshaler(format)
+	marshaler := nats.GetMarshaler(format)
 
 	logger := watermill.NewStdLogger(strings.ToLower(debug) == "true", strings.ToLower(trace) == "true")
 
 	natsURL := os.Getenv("WATERMILL_TEST_NATS_URL")
 	if natsURL == "" {
-		natsURL = nats.DefaultURL
+		natsURL = nc.DefaultURL
 	}
 
-	options := []nats.Option{
-		nats.RetryOnFailedConnect(true),
-		nats.Timeout(30 * time.Second),
-		nats.ReconnectWait(1 * time.Second),
+	options := []nc.Option{
+		nc.RetryOnFailedConnect(true),
+		nc.Timeout(30 * time.Second),
+		nc.ReconnectWait(1 * time.Second),
 	}
 
 	subscriberCount := 1
@@ -53,44 +52,51 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		subscriberCount = 2
 	}
 
-	subscribeOptions := []nats.SubOpt{
-		nats.DeliverAll(),
-		nats.AckExplicit(),
+	subscribeOptions := []nc.SubOpt{
+		nc.DeliverAll(),
+		nc.AckExplicit(),
 	}
 
-	c, err := nats.Connect(natsURL, options...)
+	c, err := nc.Connect(natsURL, options...)
 	require.NoError(t, err)
 
 	defer c.Close()
 
-	jetstreamOptions := make([]nats.JSOpt, 0)
+	jetstreamOptions := make([]nc.JSOpt, 0)
 
 	_, err = c.JetStream()
 	require.NoError(t, err)
 
-	pub, err := jetstream.NewPublisher(jetstream.PublisherConfig{
-		URL:              natsURL,
-		Marshaler:        marshaler,
-		NatsOptions:      options,
-		JetstreamOptions: jetstreamOptions,
-		AutoProvision:    true,
+	jsConfig := nats.JetStreamConfig{
+		Enabled:          true,
+		AutoProvision:    false, // tests use SubscribeInitialize
+		ConnectOptions:   jetstreamOptions,
+		SubscribeOptions: subscribeOptions,
+		PublishOptions:   nil,
 		TrackMsgId:       exactlyOnce,
+		AckSync:          exactlyOnce,
+		DurableName:      queueName,
+	}
+	pub, err := nats.NewPublisher(nats.PublisherConfig{
+		URL:               natsURL,
+		Marshaler:         marshaler,
+		NatsOptions:       options,
+		JetStream:         jsConfig,
+		SubjectCalculator: nats.DefaultSubjectCalculator,
 	}, logger)
 	require.NoError(t, err)
 
-	sub, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
-		URL:              natsURL,
-		QueueGroup:       queueName,
-		DurableName:      queueName,
-		SubscribersCount: subscriberCount, //multiple only works if a queue group specified
-		AckWaitTimeout:   30 * time.Second,
-		Unmarshaler:      marshaler,
-		NatsOptions:      options,
-		SubscribeOptions: subscribeOptions,
-		JetstreamOptions: jetstreamOptions,
-		CloseTimeout:     30 * time.Second,
-		AutoProvision:    false, // tests use SubscribeInitialize
-		AckSync:          exactlyOnce,
+	sub, err := nats.NewSubscriber(nats.SubscriberConfig{
+		URL:               natsURL,
+		QueueGroup:        queueName,
+		SubscribersCount:  subscriberCount, //multiple only works if a queue group specified
+		AckWaitTimeout:    30 * time.Second,
+		Unmarshaler:       marshaler,
+		NatsOptions:       options,
+		CloseTimeout:      30 * time.Second,
+		AckSync:           exactlyOnce,
+		SubjectCalculator: nats.DefaultSubjectCalculator,
+		JetStream:         jsConfig,
 	}, logger)
 	require.NoError(t, err)
 

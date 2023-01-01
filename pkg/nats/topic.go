@@ -1,18 +1,17 @@
-package jetstream
+package nats
 
 import (
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/msg"
 	"github.com/nats-io/nats.go"
 )
 
 type topicInterpreter struct {
 	js                nats.JetStreamManager
-	subjectCalculator msg.SubjectCalculator
+	subjectCalculator SubjectCalculator
 }
 
-func newTopicInterpreter(js nats.JetStreamManager, formatter msg.SubjectCalculator) *topicInterpreter {
+func newTopicInterpreter(js nats.JetStreamManager, formatter SubjectCalculator) *topicInterpreter {
 	if formatter == nil {
-		formatter = msg.DefaultSubjectCalculator
+		formatter = DefaultSubjectCalculator
 	}
 
 	return &topicInterpreter{

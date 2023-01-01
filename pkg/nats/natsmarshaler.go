@@ -1,4 +1,4 @@
-package msg
+package nats
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
