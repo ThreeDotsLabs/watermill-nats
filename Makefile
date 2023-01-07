@@ -14,7 +14,7 @@ test_race:
 	go test ./... -short -race
 
 test_stress:
-	go test -tags=stress -parallel 30 -timeout=45m ./...
+	STRESS_TEST_COUNT=4 go test -tags=stress -parallel 30 -timeout=45m ./...
 
 test_reconnect:
 	go test -tags=reconnect ./...
@@ -22,10 +22,11 @@ test_reconnect:
 test_exactlyonce:
 	go test -tags=exactlyonce ./...
 
-BENCHCNT := 5
+BENCHCNT := 1
 
 bench:
-	go test -bench=. -count $(BENCHCNT) -run=^# ./...
+	# benchmarks for marshalers are in _examples/marshalers/protobuf so that marshaler can be included in result
+	cd _examples && go test ./marshalers/protobuf -bench=. -count $(BENCHCNT)
 
 wait:
 	go run github.com/ThreeDotsLabs/wait-for@latest localhost:4222

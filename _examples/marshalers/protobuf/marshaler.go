@@ -1,4 +1,4 @@
-package nats
+package protobuf
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -6,9 +6,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type PBMarshaler struct{}
+type Marshaler struct{}
 
-func (*PBMarshaler) Marshal(topic string, m *message.Message) (*nats.Msg, error) {
+func (*Marshaler) Marshal(topic string, m *message.Message) (*nats.Msg, error) {
 	pbMsg := &Message{
 		Uuid:     m.UUID,
 		Metadata: m.Metadata,
@@ -27,7 +27,7 @@ func (*PBMarshaler) Marshal(topic string, m *message.Message) (*nats.Msg, error)
 	return natsMsg, nil
 }
 
-func (*PBMarshaler) Unmarshal(msg *nats.Msg) (*message.Message, error) {
+func (*Marshaler) Unmarshal(msg *nats.Msg) (*message.Message, error) {
 	pbMsg := &Message{}
 
 	err := proto.Unmarshal(msg.Data, pbMsg)

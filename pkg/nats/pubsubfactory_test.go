@@ -41,6 +41,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	}
 
 	options := []nc.Option{
+		nc.Name(clientID),
 		nc.RetryOnFailedConnect(true),
 		nc.Timeout(30 * time.Second),
 		nc.ReconnectWait(1 * time.Second),

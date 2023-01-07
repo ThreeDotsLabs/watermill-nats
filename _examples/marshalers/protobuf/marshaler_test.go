@@ -1,7 +1,8 @@
-package nats_test
+package protobuf_test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"main/marshalers/protobuf"
 )
 
 type marshalerCase struct {
@@ -23,6 +25,7 @@ var marshalerCases = []marshalerCase{
 	{"gob", &nats2.GobMarshaler{}},
 	{"json", &nats2.JSONMarshaler{}},
 	{"nats-core", &nats2.NATSMarshaler{}},
+	{"protobuf", &protobuf.Marshaler{}},
 }
 
 func TestMarshalers(t *testing.T) {
@@ -79,6 +82,35 @@ func TestMarshalers_multiple_messages_async(t *testing.T) {
 
 			wg.Wait()
 		})
+	}
+}
+
+func BenchmarkMarshalers(b *testing.B) {
+	for _, plSize := range []int{100, 1000, 10000, 20000} {
+		for _, tc := range marshalerCases {
+			b.Run(fmt.Sprintf("%db-%s", plSize, tc.name), func(b *testing.B) {
+				msg := sampleMessage(plSize)
+
+				for i := 0; i < b.N; i++ {
+					marshaled, err := tc.marshaler.Marshal("topic", msg)
+					require.NoError(b, err)
+
+					unmarshaledMsg, err := tc.marshaler.Unmarshal(marshaled)
+					require.NoError(b, err)
+
+					assert.True(b, msg.Equals(unmarshaledMsg))
+
+					unmarshaledMsg.Ack()
+
+					select {
+					case <-unmarshaledMsg.Acked():
+						// ok
+					default:
+						b.Fatal("ack is not working")
+					}
+				}
+			})
+		}
 	}
 }
 
