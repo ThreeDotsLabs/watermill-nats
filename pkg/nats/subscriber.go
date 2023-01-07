@@ -59,6 +59,10 @@ type SubscriberConfig struct {
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
 
+	// NakDelay sets duration after which the NACKed message will be resent.
+	// By default, it's NACKed without delay.
+	NakDelay Delay
+
 	// JetStream holds JetStream specific settings
 	JetStream JetStreamConfig
 }
@@ -102,6 +106,10 @@ type SubscriberSubscriptionConfig struct {
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
 
+	// NakDelay sets duration after which the NACKed message will be resent.
+	// By default, it's NACKed without delay.
+	NakDelay Delay
+
 	// JetStream holds JetStream specific settings
 	JetStream JetStreamConfig
 }
@@ -117,6 +125,7 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		SubscribeTimeout:  c.SubscribeTimeout,
 		SubjectCalculator: c.SubjectCalculator,
 		AckSync:           c.AckSync,
+		NakDelay:          c.NakDelay,
 		JetStream:         c.JetStream,
 	}
 }
@@ -359,12 +368,44 @@ func (s *Subscriber) processMessage(
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
 		if m.Reply == "" {
-			s.logger.Trace("nack without a reply subject is a no-op", messageLogFields)
+			s.logger.Trace("Ignoring nack without reply topic", messageLogFields)
 			return
 		}
-		if err := m.Nak(); err != nil {
-			s.logger.Error("Cannot send nak", err, messageLogFields)
+
+		var nakDelay time.Duration
+
+		if s.config.NakDelay != nil {
+			metadata, err := m.Metadata()
+			if err != nil {
+				s.logger.Error("Cannot parse nats message metadata, use nak without delay", err, messageLogFields)
+			} else {
+				nakDelay = s.config.NakDelay.WaitTime(metadata.NumDelivered)
+				messageLogFields = messageLogFields.Add(watermill.LogFields{
+					"delay":    nakDelay.String(),
+					"retryNum": metadata.NumDelivered,
+				})
+			}
+		}
+
+		if nakDelay == StopTime {
+			if err := m.Term(); err != nil {
+				s.logger.Error("Cannot send term", err, messageLogFields)
+			} else {
+				s.logger.Trace("Message Termed via -1 NakDelay calculation", messageLogFields)
+			}
 			return
+		}
+
+		if nakDelay > 0 {
+			if err := m.NakWithDelay(nakDelay); err != nil {
+				s.logger.Error("Cannot send nak", err, messageLogFields)
+				return
+			}
+		} else {
+			if err := m.Nak(); err != nil {
+				s.logger.Error("Cannot send nak", err, messageLogFields)
+				return
+			}
 		}
 		s.logger.Trace("Message Nacked", messageLogFields)
 		return
