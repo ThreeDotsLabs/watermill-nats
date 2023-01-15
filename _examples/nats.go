@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -45,6 +49,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r- Ctrl+C pressed in Terminal - closing subscriber")
+		subscriber.Close()
+		os.Exit(0)
+	}()
 
 	messages, err := subscriber.Subscribe(context.Background(), "example_topic_nats")
 	if err != nil {
