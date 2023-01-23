@@ -46,7 +46,7 @@ func (j jsConnection) PublishMsg(msg *nats.Msg) (err error) {
 		}
 	}
 
-	_, err = j.js.PublishMsg(msg, j.cfg.PublishOptions...)
+	_, err = j.js.PublishMsg(msg, publishOpts...)
 
 	return
 }

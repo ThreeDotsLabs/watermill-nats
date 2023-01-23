@@ -26,12 +26,23 @@ func getTestFeatures() tests.Features {
 	}
 }
 
+func getMarshaler(format string) nats.MarshalerUnmarshaler {
+	switch strings.ToLower(format) {
+	case "gob":
+		return &nats.GobMarshaler{}
+	case "json":
+		return &nats.JSONMarshaler{}
+	default:
+		return &nats.NATSMarshaler{}
+	}
+}
+
 func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool) (message.Publisher, message.Subscriber) {
 	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
 	debug := os.Getenv("WATERMILL_TEST_NATS_DEBUG")
 
 	format := os.Getenv("WATERMILL_TEST_NATS_FORMAT")
-	marshaler := nats.GetMarshaler(format)
+	marshaler := getMarshaler(format)
 
 	logger := watermill.NewStdLogger(strings.ToLower(debug) == "true", strings.ToLower(trace) == "true")
 

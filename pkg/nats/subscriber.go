@@ -144,6 +144,10 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 		c.SubscribeTimeout = time.Second * 30
 	}
 
+	if c.Unmarshaler == nil {
+		c.Unmarshaler = &NATSMarshaler{}
+	}
+
 	if c.SubjectCalculator == nil {
 		c.SubjectCalculator = DefaultSubjectCalculator
 	}

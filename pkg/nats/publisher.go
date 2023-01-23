@@ -38,6 +38,9 @@ type PublisherPublishConfig struct {
 }
 
 func (c *PublisherConfig) setDefaults() {
+	if c.Marshaler == nil {
+		c.Marshaler = &NATSMarshaler{}
+	}
 	if c.SubjectCalculator == nil {
 		c.SubjectCalculator = DefaultSubjectCalculator
 	}
