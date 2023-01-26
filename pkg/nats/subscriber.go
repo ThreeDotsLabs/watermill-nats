@@ -391,7 +391,7 @@ func (s *Subscriber) processMessage(
 			}
 		}
 
-		if nakDelay == StopTime {
+		if nakDelay == TermSignal {
 			if err := m.Term(); err != nil {
 				s.logger.Error("Cannot send term", err, messageLogFields)
 			} else {
