@@ -106,7 +106,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		Unmarshaler:       marshaler,
 		NatsOptions:       options,
 		CloseTimeout:      30 * time.Second,
-		AckSync:           exactlyOnce,
+		AckAsync:          !exactlyOnce,
 		SubjectCalculator: nats.DefaultSubjectCalculator,
 		JetStream:         jsConfig,
 	}, logger)
