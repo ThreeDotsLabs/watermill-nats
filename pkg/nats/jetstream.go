@@ -25,7 +25,11 @@ type JetStreamConfig struct {
 	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
 	AckSync bool
 
-	// DurableName is the JetStream durable name.
+	// DurablePrefix is the prefix used by to derive the durable name from the topic.
+	//
+	// By default the prefix will be used on its own to form the durable name.  This only allows use
+	// of a single subscription per configuration.  For more flexibility provide a DurableCalculator
+	// that will receive durable prefix + topic.
 	//
 	// Subscriptions may also specify a “durable name” which will survive client restarts.
 	// Durable subscriptions cause the server to track the last acknowledged message
@@ -34,6 +38,20 @@ type JetStreamConfig struct {
 	// with the earliest unacknowledged message for this durable subscription.
 	//
 	// Doing this causes the JetStream server to track
-	// the last acknowledged message for that ClientID + DurableName.
-	DurableName string
+	// the last acknowledged message for that ClientID + Durable.
+	DurablePrefix string
+
+	// DurableCalculator is a custom function used to derive a durable name from a topic + durable prefix
+	DurableCalculator DurableCalculator
+}
+
+type DurableCalculator = func(string, string) string
+
+func (c JetStreamConfig) CalculateDurableName(topic string) string {
+	if c.DurableCalculator != nil {
+		return c.DurableCalculator(c.DurablePrefix, topic)
+	} else if c.DurablePrefix != "" {
+		return c.DurablePrefix //TODO: should we try to do anything with topic by default?
+	}
+	return ""
 }

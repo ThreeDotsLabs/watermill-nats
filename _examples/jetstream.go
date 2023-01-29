@@ -49,7 +49,7 @@ func main() {
 		PublishOptions:   nil,
 		TrackMsgId:       false,
 		AckSync:          false,
-		DurableName:      "",
+		DurablePrefix:    "",
 	}
 	subscriber, err := nats.NewSubscriber(
 		nats.SubscriberConfig{

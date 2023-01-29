@@ -109,7 +109,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 			return nil, err
 		}
 
-		interpreter = newTopicInterpreter(js, config.SubjectCalculator)
+		interpreter = newTopicInterpreter(js, config.SubjectCalculator, "")
 	}
 
 	return &Publisher{
@@ -126,6 +126,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 // When one of messages delivery fails - function is interrupted.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	// TODO: should we auto provision on publish?  Need durable on publish options...
+	// should also cache this result to minimize chatter to broker
 	if p.config.JetStream.Enabled && p.config.JetStream.AutoProvision {
 		err := p.topicInterpreter.ensureStream(topic)
 		if err != nil {

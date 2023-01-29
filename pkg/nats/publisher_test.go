@@ -10,7 +10,7 @@ func TestPublisherConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name              string
 		marshaler         Marshaler
-		subjectCalculator func(string) *Subjects
+		subjectCalculator SubjectCalculator
 		wantErr           bool
 	}{
 		{name: "OK", marshaler: &GobMarshaler{}, wantErr: false, subjectCalculator: DefaultSubjectCalculator},

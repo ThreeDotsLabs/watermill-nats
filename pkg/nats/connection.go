@@ -27,9 +27,10 @@ type jsConnection struct {
 func (j jsConnection) QueueSubscribe(s string, q string, handler nats.MsgHandler) (*nats.Subscription, error) {
 	opts := j.cfg.SubscribeOptions
 
-	if j.cfg.DurableName != "" {
-		opts = append(opts, nats.Durable(j.cfg.DurableName))
+	if durable := j.cfg.CalculateDurableName(s); durable != "" {
+		opts = append(opts, nats.Durable(durable))
 	} else {
+		// find & bind stream based on subscription subject
 		opts = append(opts, nats.BindStream(""))
 	}
 
