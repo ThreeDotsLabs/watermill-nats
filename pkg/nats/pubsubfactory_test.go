@@ -87,28 +87,28 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		PublishOptions:   nil,
 		TrackMsgId:       exactlyOnce,
 		AckSync:          exactlyOnce,
-		DurableName:      queueName,
+		DurablePrefix:    queueName,
 	}
 	pub, err := nats.NewPublisher(nats.PublisherConfig{
-		URL:               natsURL,
-		Marshaler:         marshaler,
-		NatsOptions:       options,
-		JetStream:         jsConfig,
-		SubjectCalculator: nats.DefaultSubjectCalculator,
+		URL:         natsURL,
+		Marshaler:   marshaler,
+		NatsOptions: options,
+		JetStream:   jsConfig,
+		// SubjectCalculator: nats.DefaultSubjectCalculator("", queueName),
 	}, logger)
 	require.NoError(t, err)
 
 	sub, err := nats.NewSubscriber(nats.SubscriberConfig{
-		URL:               natsURL,
-		QueueGroup:        queueName,
-		SubscribersCount:  subscriberCount, //multiple only works if a queue group specified
-		AckWaitTimeout:    30 * time.Second,
-		Unmarshaler:       marshaler,
-		NatsOptions:       options,
-		CloseTimeout:      30 * time.Second,
-		AckAsync:          !exactlyOnce,
-		SubjectCalculator: nats.DefaultSubjectCalculator,
-		JetStream:         jsConfig,
+		URL:              natsURL,
+		QueueGroupPrefix: queueName,
+		SubscribersCount: subscriberCount, //multiple only works if a queue group specified
+		AckWaitTimeout:   30 * time.Second,
+		Unmarshaler:      marshaler,
+		NatsOptions:      options,
+		CloseTimeout:     30 * time.Second,
+		AckAsync:         !exactlyOnce,
+		// SubjectCalculator: nats.DefaultSubjectCalculator(queueName, queueName),
+		JetStream: jsConfig,
 	}, logger)
 	require.NoError(t, err)
 

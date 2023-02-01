@@ -17,19 +17,17 @@ type SubscriberConfig struct {
 	// URL is the URL to the broker
 	URL string
 
-	// QueueGroup is the queue group.
+	// QueueGroupPrefix is the prefix used by SubjectCalculator to derive queue group from the topic.
 	//
 	// All subscriptions with the same queue name (regardless of the connection they originate from)
 	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
 	// using queuing semantics.
 	//
-	// For JetStream is recommended to set it with DurableName.
+	// For JetStream is recommended to set it with DurablePrefix.
 	// For non durable queue subscribers, when the last member leaves the group,
-	// that group is removed. A durable queue group (DurableName) allows you to have all members leave
+	// that group is removed. A durable queue group (DurablePrefix) allows you to have all members leave
 	// but still maintain state. When a member re-joins, it starts at the last position in that group.
-	//
-	// When QueueGroup is empty, subscribe without QueueGroup will be used.
-	QueueGroup string
+	QueueGroupPrefix string
 
 	// SubscribersCount determines how many concurrent subscribers should be started.
 	SubscribersCount int
@@ -72,20 +70,6 @@ type SubscriberSubscriptionConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
 
-	// QueueGroup is the queue group.
-	//
-	// All subscriptions with the same queue name (regardless of the connection they originate from)
-	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
-	// using queuing semantics.
-	//
-	// For JetStream is recommended to set it with DurableName.
-	// For non durable queue subscribers, when the last member leaves the group,
-	// that group is removed. A durable queue group (DurableName) allows you to have all members leave
-	// but still maintain state. When a member re-joins, it starts at the last position in that group.
-	//
-	// When QueueGroup is empty, subscribe without QueueGroup will be used.
-	QueueGroup string
-
 	// SubscribersCount determines wow much concurrent subscribers should be started.
 	SubscribersCount int
 
@@ -112,13 +96,24 @@ type SubscriberSubscriptionConfig struct {
 
 	// JetStream holds JetStream specific settings
 	JetStream JetStreamConfig
+
+	// QueueGroupPrefix is the prefix used by SubjectCalculator to derive queue group from the topic.
+	//
+	// All subscriptions with the same queue name (regardless of the connection they originate from)
+	// will form a queue group. Each message will be delivered to only one subscriber per queue group,
+	// using queuing semantics.
+	//
+	// For JetStream is recommended to set it with DurablePrefix.
+	// For non durable queue subscribers, when the last member leaves the group,
+	// that group is removed. A durable queue group (DurablePrefix) allows you to have all members leave
+	// but still maintain state. When a member re-joins, it starts at the last position in that group.
+	QueueGroupPrefix string
 }
 
 // GetSubscriberSubscriptionConfig gets the configuration subset needed for individual subscribe calls once a connection has been established
 func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
 	return SubscriberSubscriptionConfig{
 		Unmarshaler:       c.Unmarshaler,
-		QueueGroup:        c.QueueGroup,
 		SubscribersCount:  c.SubscribersCount,
 		AckWaitTimeout:    c.AckWaitTimeout,
 		CloseTimeout:      c.CloseTimeout,
@@ -127,10 +122,15 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		AckAsync:          c.AckAsync,
 		NakDelay:          c.NakDelay,
 		JetStream:         c.JetStream,
+		QueueGroupPrefix:  c.QueueGroupPrefix,
 	}
 }
 
 func (c *SubscriberSubscriptionConfig) setDefaults() {
+	if c.SubjectCalculator == nil {
+		c.SubjectCalculator = DefaultSubjectCalculator
+	}
+
 	if c.SubscribersCount <= 0 {
 		c.SubscribersCount = 1
 	}
@@ -147,10 +147,6 @@ func (c *SubscriberSubscriptionConfig) setDefaults() {
 	if c.Unmarshaler == nil {
 		c.Unmarshaler = &NATSMarshaler{}
 	}
-
-	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = DefaultSubjectCalculator
-	}
 }
 
 // Validate ensures configuration is valid before use
@@ -159,13 +155,16 @@ func (c *SubscriberSubscriptionConfig) Validate() error {
 		return errors.New("SubscriberConfig.Unmarshaler is missing")
 	}
 
-	if c.QueueGroup == "" && c.SubscribersCount > 1 {
-		return errors.New(
-			"to set SubscriberConfig.SubscribersCount " +
-				"you need to also set SubscriberConfig.QueueGroup, " +
-				"in other case you will receive duplicated messages",
-		)
-	}
+	//TODO: how best to validate this with dynamic queue group
+	/*
+		if c.QueueGroup == "" && c.SubscribersCount > 1 {
+			return errors.New(
+				"to set SubscriberConfig.SubscribersCount " +
+					"you need to also set SubscriberConfig.QueueGroupPrefix, " +
+					"in other case you will receive duplicated messages",
+			)
+		}
+	*/
 
 	if c.SubjectCalculator == nil {
 		return errors.New("SubscriberSubscriptionConfig.SubjectCalculator is required.")
@@ -223,7 +222,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 			return nil, err
 		}
 
-		interpreter = newTopicInterpreter(js, config.SubjectCalculator)
+		interpreter = newTopicInterpreter(js, config.SubjectCalculator, config.QueueGroupPrefix)
 	}
 
 	return &Subscriber{
@@ -302,11 +301,11 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 		}
 	}
 
-	primarySubject := s.config.SubjectCalculator(topic).Primary
+	subjectDetail := s.config.SubjectCalculator(s.config.QueueGroupPrefix, topic)
 
 	return s.conn.QueueSubscribe(
-		primarySubject,
-		s.config.QueueGroup,
+		subjectDetail.Primary,
+		subjectDetail.QueueGroup,
 		cb,
 	)
 }
