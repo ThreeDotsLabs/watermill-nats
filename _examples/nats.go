@@ -36,6 +36,8 @@ func main() {
 		nc.ReconnectWait(1 * time.Second),
 	}
 
+	jsConfig := nats.JetStreamConfig{Disabled: true}
+
 	subscriber, err := nats.NewSubscriber(
 		nats.SubscriberConfig{
 			URL:            svr.ClientURL(),
@@ -43,6 +45,7 @@ func main() {
 			AckWaitTimeout: 30 * time.Second,
 			NatsOptions:    options,
 			Unmarshaler:    marshaler,
+			JetStream:      jsConfig,
 		},
 		logger,
 	)
@@ -71,6 +74,7 @@ func main() {
 			URL:         svr.ClientURL(),
 			NatsOptions: options,
 			Marshaler:   marshaler,
+			JetStream:   jsConfig,
 		},
 		logger,
 	)

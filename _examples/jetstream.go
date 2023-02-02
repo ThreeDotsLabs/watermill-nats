@@ -42,7 +42,7 @@ func main() {
 	}
 
 	jsConfig := nats.JetStreamConfig{
-		Disabled:         true,
+		Disabled:         false,
 		AutoProvision:    true,
 		ConnectOptions:   nil,
 		SubscribeOptions: subscribeOptions,
