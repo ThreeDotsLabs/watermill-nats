@@ -86,7 +86,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		SubscribeOptions: subscribeOptions,
 		PublishOptions:   nil,
 		TrackMsgId:       exactlyOnce,
-		AckSync:          exactlyOnce,
+		AckAsync:         exactlyOnce,
 		DurablePrefix:    queueName,
 	}
 	pub, err := nats.NewPublisher(nats.PublisherConfig{
@@ -106,7 +106,6 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		Unmarshaler:      marshaler,
 		NatsOptions:      options,
 		CloseTimeout:     30 * time.Second,
-		AckAsync:         !exactlyOnce,
 		// SubjectCalculator: nats.DefaultSubjectCalculator(queueName, queueName),
 		JetStream: jsConfig,
 	}, logger)

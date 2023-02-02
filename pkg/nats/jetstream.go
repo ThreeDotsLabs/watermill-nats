@@ -22,8 +22,8 @@ type JetStreamConfig struct {
 	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication (needed for exactly once processing)
 	TrackMsgId bool
 
-	// AckSync enables synchronous acknowledgement (needed for exactly once processing)
-	AckSync bool
+	// AckAsync enables asynchronous acknowledgement
+	AckAsync bool
 
 	// DurablePrefix is the prefix used by to derive the durable name from the topic.
 	//

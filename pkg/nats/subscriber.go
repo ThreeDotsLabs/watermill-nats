@@ -54,9 +54,6 @@ type SubscriberConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
-	// AckAsync enables asynchronous acknowledgement
-	AckAsync bool
-
 	// NakDelay sets duration after which the NACKed message will be resent.
 	// By default, it's NACKed without delay.
 	NakDelay Delay
@@ -87,9 +84,6 @@ type SubscriberSubscriptionConfig struct {
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
 	SubjectCalculator SubjectCalculator
 
-	// AckAsync enables asynchronous acknowledgement
-	AckAsync bool
-
 	// NakDelay sets duration after which the NACKed message will be resent.
 	// By default, it's NACKed without delay.
 	NakDelay Delay
@@ -119,7 +113,6 @@ func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscript
 		CloseTimeout:      c.CloseTimeout,
 		SubscribeTimeout:  c.SubscribeTimeout,
 		SubjectCalculator: c.SubjectCalculator,
-		AckAsync:          c.AckAsync,
 		NakDelay:          c.NakDelay,
 		JetStream:         c.JetStream,
 		QueueGroupPrefix:  c.QueueGroupPrefix,
@@ -358,7 +351,7 @@ func (s *Subscriber) processMessage(
 		}
 		var err error
 
-		if s.config.AckAsync {
+		if s.config.JetStream.AckAsync {
 			err = m.Ack()
 		} else {
 			err = m.AckSync()

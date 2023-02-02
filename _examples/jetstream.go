@@ -48,7 +48,7 @@ func main() {
 		SubscribeOptions: subscribeOptions,
 		PublishOptions:   nil,
 		TrackMsgId:       false,
-		AckSync:          false,
+		AckAsync:         false,
 		DurablePrefix:    "",
 	}
 	subscriber, err := nats.NewSubscriber(
