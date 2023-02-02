@@ -10,10 +10,12 @@ import (
 )
 
 func TestPublishSubscribe_stress(t *testing.T) {
+	factory := pubSubFactory(false)
+
 	tests.TestPubSubStressTest(
 		t,
-		getTestFeatures(),
-		createPubSub,
-		createPubSubWithConsumerGroup,
+		getTestFeatures(bool(factory)),
+		factory.createPubSub,
+		factory.createPubSubWithConsumerGroup,
 	)
 }

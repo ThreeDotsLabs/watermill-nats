@@ -19,9 +19,6 @@ test_stress:
 test_reconnect:
 	go test -tags=reconnect ./...
 
-test_exactlyonce:
-	go test -tags=exactlyonce ./...
-
 BENCHCNT := 1
 
 bench:

@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getTestFeatures() tests.Features {
+func getTestFeatures(exactlyOnce bool) tests.Features {
 	return tests.Features{
 		ConsumerGroups:                      true,
-		ExactlyOnceDelivery:                 false,
+		ExactlyOnceDelivery:                 exactlyOnce,
 		GuaranteedOrder:                     true,
 		GuaranteedOrderWithSingleSubscriber: true,
 		Persistent:                          true,
@@ -36,6 +36,8 @@ func getMarshaler(format string) nats.MarshalerUnmarshaler {
 		return &nats.NATSMarshaler{}
 	}
 }
+
+type pubSubFactory bool
 
 func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool) (message.Publisher, message.Subscriber) {
 	trace := os.Getenv("WATERMILL_TEST_NATS_TRACE")
@@ -114,20 +116,10 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	return pub, sub
 }
 
-func createPubSub(t *testing.T) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, watermill.NewUUID(), "", false)
+func (p pubSubFactory) createPubSub(t *testing.T) (message.Publisher, message.Subscriber) {
+	return newPubSub(t, watermill.NewUUID(), "", bool(p))
 }
 
-func createPubSubWithConsumerGroup(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, watermill.NewUUID(), consumerGroup, false)
-}
-
-//nolint:deadcode,unused
-func createPubSubWithExactlyOnce(t *testing.T) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, watermill.NewUUID(), "", true)
-}
-
-//nolint:deadcode,unused
-func createPubSubWithConsumerGroupWithExactlyOnce(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
-	return newPubSub(t, watermill.NewUUID(), consumerGroup, true)
+func (p pubSubFactory) createPubSubWithConsumerGroup(t *testing.T, consumerGroup string) (message.Publisher, message.Subscriber) {
+	return newPubSub(t, watermill.NewUUID(), consumerGroup, bool(p))
 }

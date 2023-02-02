@@ -7,10 +7,17 @@ import (
 )
 
 func TestPublishSubscribe(t *testing.T) {
-	tests.TestPubSub(
-		t,
-		getTestFeatures(),
-		createPubSub,
-		createPubSubWithConsumerGroup,
-	)
+	for name, factory := range map[string]pubSubFactory{
+		"normal":       false,
+		"exactly_once": false,
+	} {
+		t.Run(name, func(t *testing.T) {
+			tests.TestPubSub(
+				t,
+				getTestFeatures(bool(factory)),
+				factory.createPubSub,
+				factory.createPubSubWithConsumerGroup,
+			)
+		})
+	}
 }

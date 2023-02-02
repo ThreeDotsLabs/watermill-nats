@@ -11,9 +11,11 @@ import (
 )
 
 func TestPublishSubscribe_reconnect(t *testing.T) {
-	features := getTestFeatures()
+	factory := pubSubFactory(false)
 
-	containerName := "watermill-jetstream_nats_1" //default on linux
+	features := getTestFeatures(bool(factory))
+
+	containerName := "watermill-nats_nats_1" //default on linux
 	if cn, found := os.LookupEnv("WATERMILL_TEST_NATS_CONTAINERNAME"); found {
 		containerName = cn
 	}
@@ -25,7 +27,7 @@ func TestPublishSubscribe_reconnect(t *testing.T) {
 	tests.TestPubSub(
 		t,
 		features,
-		createPubSub,
-		createPubSubWithConsumerGroup,
+		factory.createPubSub,
+		factory.createPubSubWithConsumerGroup,
 	)
 }
