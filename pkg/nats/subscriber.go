@@ -37,7 +37,6 @@ type SubscriberConfig struct {
 	CloseTimeout time.Duration
 
 	// How long subscriber should wait for Ack/Nack. When no Ack/Nack was received, message will be redelivered.
-	// It is mapped to stan.AckWait option.
 	AckWaitTimeout time.Duration
 
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
@@ -71,7 +70,6 @@ type SubscriberSubscriptionConfig struct {
 	SubscribersCount int
 
 	// How long subscriber should wait for Ack/Nack. When no Ack/Nack was received, message will be redelivered.
-	// It is mapped to stan.AckWait option.
 	AckWaitTimeout time.Duration
 
 	// CloseTimeout determines how long subscriber will wait for Ack/Nack on close.
@@ -206,7 +204,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 	var connection Connection = conn
 	var interpreter *topicInterpreter
 
-	if config.JetStream.Enabled {
+	if !config.JetStream.Disabled {
 		js, err := conn.JetStream(config.JetStream.ConnectOptions...)
 
 		connection = &jsConnection{conn, js, config.JetStream}
@@ -282,12 +280,11 @@ func (s *Subscriber) SubscribeInitialize(topic string) error {
 	if err != nil {
 		return errors.Wrap(err, "cannot initialize subscribe")
 	}
-
 	return nil
 }
 
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
-	if s.config.JetStream.Enabled && s.config.JetStream.AutoProvision {
+	if s.config.JetStream.ShouldAutoProvision() {
 		err := s.SubscribeInitialize(topic)
 		if err != nil {
 			return nil, err

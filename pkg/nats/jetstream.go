@@ -4,8 +4,8 @@ import "github.com/nats-io/nats.go"
 
 // JetStreamConfig contains configuration settings specific to running in JetStream mode
 type JetStreamConfig struct {
-	// Enabled controls whether JetStream semantics should be used
-	Enabled bool
+	// Disabled controls whether JetStream semantics should be used
+	Disabled bool
 
 	// AutoProvision indicates the application should create the configured stream if missing on the broker
 	AutoProvision bool
@@ -54,4 +54,8 @@ func (c JetStreamConfig) CalculateDurableName(topic string) string {
 		return c.DurablePrefix //TODO: should we try to do anything with topic by default?
 	}
 	return ""
+}
+
+func (c JetStreamConfig) ShouldAutoProvision() bool {
+	return !c.Disabled && c.AutoProvision
 }

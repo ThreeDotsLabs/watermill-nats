@@ -100,7 +100,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 	var connection Connection = conn
 	var interpreter *topicInterpreter
 
-	if config.JetStream.Enabled {
+	if !config.JetStream.Disabled {
 		js, err := conn.JetStream(config.JetStream.ConnectOptions...)
 
 		connection = &jsConnection{conn, js, config.JetStream}
@@ -127,7 +127,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	// TODO: should we auto provision on publish?  Need durable on publish options...
 	// should also cache this result to minimize chatter to broker
-	if p.config.JetStream.Enabled && p.config.JetStream.AutoProvision {
+	if p.config.JetStream.ShouldAutoProvision() {
 		err := p.topicInterpreter.ensureStream(topic)
 		if err != nil {
 			return err

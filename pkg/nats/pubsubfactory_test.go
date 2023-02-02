@@ -82,7 +82,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 	require.NoError(t, err)
 
 	jsConfig := nats.JetStreamConfig{
-		Enabled:          true,
+		Disabled:         false,
 		AutoProvision:    false, // tests use SubscribeInitialize
 		ConnectOptions:   jetstreamOptions,
 		SubscribeOptions: subscribeOptions,
