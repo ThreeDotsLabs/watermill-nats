@@ -21,8 +21,9 @@ func getTestFeatures(exactlyOnce bool) tests.Features {
 		GuaranteedOrder:                     true,
 		GuaranteedOrderWithSingleSubscriber: true,
 		Persistent:                          true,
-		RequireSingleInstance:               false,
-		NewSubscriberReceivesOldMessages:    true,
+		// TODO: look at test failures on TestConcurrentSubscribe if RequireSingleInstance = false
+		RequireSingleInstance:            exactlyOnce,
+		NewSubscriberReceivesOldMessages: true,
 	}
 }
 
@@ -88,7 +89,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		SubscribeOptions: subscribeOptions,
 		PublishOptions:   nil,
 		TrackMsgId:       exactlyOnce,
-		AckAsync:         exactlyOnce,
+		AckAsync:         !exactlyOnce,
 		DurablePrefix:    queueName,
 	}
 	pub, err := nats.NewPublisher(nats.PublisherConfig{

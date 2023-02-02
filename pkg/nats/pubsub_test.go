@@ -9,7 +9,7 @@ import (
 func TestPublishSubscribe(t *testing.T) {
 	for name, factory := range map[string]pubSubFactory{
 		"normal":       false,
-		"exactly_once": false,
+		"exactly_once": true,
 	} {
 		t.Run(name, func(t *testing.T) {
 			tests.TestPubSub(
