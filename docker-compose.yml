@@ -3,9 +3,13 @@
 
 version: '3'
 services:
-  nats-streaming:
-    image: nats-streaming:0.11.2
+  nats:
+    image: nats:2
     ports:
-      - 4222:4222
+      - "0.0.0.0:4222:4222"
     restart: unless-stopped
-    entrypoint: ["/nats-streaming-server", "--max_channels=0"]
+    command: ["-js"]
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536

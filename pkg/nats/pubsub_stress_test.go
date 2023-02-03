@@ -1,3 +1,4 @@
+//go:build stress
 // +build stress
 
 package nats_test
@@ -9,15 +10,12 @@ import (
 )
 
 func TestPublishSubscribe_stress(t *testing.T) {
+	factory := pubSubFactory(false)
+
 	tests.TestPubSubStressTest(
 		t,
-		tests.Features{
-			ConsumerGroups:      true,
-			ExactlyOnceDelivery: false,
-			GuaranteedOrder:     false,
-			Persistent:          true,
-		},
-		createPubSub,
-		createPubSubWithDurable,
+		getTestFeatures(bool(factory)),
+		factory.createPubSub,
+		factory.createPubSubWithConsumerGroup,
 	)
 }
