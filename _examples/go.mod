@@ -1,11 +1,11 @@
 module main
 
-go 1.18
+go 1.17
 
 replace github.com/ThreeDotsLabs/watermill-nats/v2 => ../
 
 require (
-	github.com/ThreeDotsLabs/watermill v1.2.0-rc.12
+	github.com/ThreeDotsLabs/watermill v1.2.0
 	github.com/ThreeDotsLabs/watermill-nats/v2 v2.0.0
 	github.com/google/uuid v1.3.0
 	github.com/nats-io/nats-server/v2 v2.9.8
