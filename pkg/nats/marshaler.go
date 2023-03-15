@@ -51,13 +51,13 @@ func (GobMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, erro
 	return defaultNatsMsg(topic, buf.Bytes(), nil), nil
 }
 
-// Unmarshal extracts a watermill message from a nats-core message.
+// Unmarshal extracts a watermill message from a nats message.
 func (GobMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 	buf := new(bytes.Buffer)
 
 	_, err := buf.Write(natsMsg.Data)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot write nats-core message data to buffer")
+		return nil, errors.Wrap(err, "cannot write nats message data to buffer")
 	}
 
 	decoder := gob.NewDecoder(buf)
@@ -87,7 +87,7 @@ func (JSONMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, err
 	return defaultNatsMsg(topic, bytes, nil), nil
 }
 
-// Unmarshal extracts a watermill message from a nats-core message.
+// Unmarshal extracts a watermill message from a nats message.
 func (JSONMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 	var decodedMsg message.Message
 	err := json.Unmarshal(natsMsg.Data, &decodedMsg)
@@ -124,7 +124,7 @@ func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, er
 	return defaultNatsMsg(topic, data, header), nil
 }
 
-// Unmarshal extracts a watermill message from a nats-core message.
+// Unmarshal extracts a watermill message from a nats message.
 func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
 	data := natsMsg.Data
 

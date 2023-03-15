@@ -18,7 +18,7 @@ type PublisherConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
 	SubjectCalculator SubjectCalculator
 
 	// JetStream holds JetStream specific settings
@@ -30,7 +30,7 @@ type PublisherPublishConfig struct {
 	// Marshaler is marshaler used to marshal messages between watermill and wire formats
 	Marshaler Marshaler
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
 	SubjectCalculator SubjectCalculator
 
 	// JetStream holds JetStream specific settings
@@ -85,13 +85,13 @@ func NewPublisher(config PublisherConfig, logger watermill.LoggerAdapter) (*Publ
 
 	conn, err := nats.Connect(config.URL, config.NatsOptions...)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot connect to nats-core")
+		return nil, errors.Wrap(err, "cannot connect to nats")
 	}
 
 	return NewPublisherWithNatsConn(conn, config.GetPublisherPublishConfig(), logger)
 }
 
-// NewPublisherWithNatsConn creates a new Publisher with the provided nats-core connection.
+// NewPublisherWithNatsConn creates a new Publisher with the provided nats connection.
 func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, logger watermill.LoggerAdapter) (*Publisher, error) {
 	if logger == nil {
 		logger = watermill.NopLogger{}

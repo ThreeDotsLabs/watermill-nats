@@ -22,7 +22,7 @@ type marshalerCase struct {
 var marshalerCases = []marshalerCase{
 	{"gob", &nats2.GobMarshaler{}},
 	{"json", &nats2.JSONMarshaler{}},
-	{"nats-core", &nats2.NATSMarshaler{}},
+	{"nats", &nats2.NATSMarshaler{}},
 }
 
 func TestMarshalers(t *testing.T) {
