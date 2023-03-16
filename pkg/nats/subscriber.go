@@ -50,7 +50,7 @@ type SubscriberConfig struct {
 	// Unmarshaler is an unmarshaler used to unmarshaling messages from NATS format to Watermill format.
 	Unmarshaler Unmarshaler
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
 	SubjectCalculator SubjectCalculator
 
 	// NakDelay sets duration after which the NACKed message will be resent.
@@ -79,7 +79,7 @@ type SubscriberSubscriptionConfig struct {
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
 	SubscribeTimeout time.Duration
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to "{topic}.*")
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
 	SubjectCalculator SubjectCalculator
 
 	// NakDelay sets duration after which the NACKed message will be resent.
@@ -189,7 +189,7 @@ func NewSubscriber(config SubscriberConfig, logger watermill.LoggerAdapter) (*Su
 	return NewSubscriberWithNatsConn(conn, config.GetSubscriberSubscriptionConfig(), logger)
 }
 
-// NewSubscriberWithNatsConn creates a new Subscriber with the provided nats-core connection.
+// NewSubscriberWithNatsConn creates a new Subscriber with the provided nats connection.
 func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionConfig, logger watermill.LoggerAdapter) (*Subscriber, error) {
 	config.setDefaults()
 

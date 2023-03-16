@@ -12,7 +12,7 @@ func (s *SubjectDetail) All() []string {
 	return append([]string{s.Primary}, s.Additional...)
 }
 
-// SubjectCalculator is a function used to calculate nats-core subject(s) for the given topic.
+// SubjectCalculator is a function used to calculate nats subject(s) for the given topic.
 type SubjectCalculator func(queueGroupPrefix, topic string) *SubjectDetail
 
 func DefaultSubjectCalculator(queueGroupPrefix, topic string) *SubjectDetail {
