@@ -20,7 +20,7 @@ func TestStaticDelay(t *testing.T) {
 
 func TestMaxRetryDelay(t *testing.T) {
 	delay := time.Minute
-	maxRetry := 5
+	maxRetry := uint64(5)
 
 	sd := nats.NewMaxRetryDelay(delay, maxRetry)
 
