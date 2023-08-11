@@ -9,6 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	watermillSync "github.com/ThreeDotsLabs/watermill/pubsub/sync"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/pkg/errors"
 )
 
@@ -243,7 +244,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 		s.logger.Debug("Starting subscriber", subscriberLogFields)
 
 		sub, err := s.subscribe(topic, func(msg *nats.Msg) {
-			s.processMessage(ctx, msg, output, subscriberLogFields)
+			s.processMessage(ctx, NewJetstreamCompat(msg), output, subscriberLogFields)
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot subscribe")
@@ -300,9 +301,31 @@ func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscrip
 	)
 }
 
+/*
+func (s *Subscriber) pullSubscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
+	js, err := jetstream.New(s.conn.(*nats.Conn))
+	if err != nil {
+		return nil, err
+	}
+
+	it, err := js.CreateOrUpdateConsumer(context.Background(), topic, jetstream.ConsumerConfig{
+		Name: "",
+	})
+
+	for {
+		var msg jetstream.Msg
+		msg, err := it.Next()
+		if err != nil {
+			// huh
+		}
+		go s.processMessage(context.Background(), msg, nil, nil
+	}
+}
+*/
+
 func (s *Subscriber) processMessage(
 	ctx context.Context,
-	m *nats.Msg,
+	m jetstream.Msg,
 	output chan *message.Message,
 	logFields watermill.LogFields,
 ) {
@@ -342,7 +365,7 @@ func (s *Subscriber) processMessage(
 
 	select {
 	case <-msg.Acked():
-		if m.Reply == "" {
+		if m.Reply() == "" {
 			s.logger.Trace("ack without a reply subject is a no-op", messageLogFields)
 			return
 		}
@@ -351,7 +374,7 @@ func (s *Subscriber) processMessage(
 		if s.config.JetStream.AckAsync {
 			err = m.Ack()
 		} else {
-			err = m.AckSync()
+			err = m.DoubleAck(ctx)
 		}
 
 		if err != nil {
@@ -360,7 +383,7 @@ func (s *Subscriber) processMessage(
 		}
 		s.logger.Trace("Message Acked", messageLogFields)
 	case <-msg.Nacked():
-		if m.Reply == "" {
+		if m.Reply() == "" {
 			s.logger.Trace("Ignoring nack without reply topic", messageLogFields)
 			return
 		}
@@ -381,6 +404,10 @@ func (s *Subscriber) processMessage(
 		}
 
 		if nakDelay == TermSignal {
+			if m.Reply() == "" {
+				s.logger.Trace("Ignoring term without reply topic", messageLogFields)
+				return
+			}
 			if err := m.Term(); err != nil {
 				s.logger.Error("Cannot send term", err, messageLogFields)
 			} else {

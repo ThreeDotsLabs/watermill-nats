@@ -7,6 +7,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +20,7 @@ type Marshaler interface {
 // Unmarshaler provides transport decoding function
 type Unmarshaler interface {
 	// Unmarshal produces a watermill message from NATS wire format.
-	Unmarshal(*nats.Msg) (*message.Message, error)
+	Unmarshal(jetstream.Msg) (*message.Message, error)
 }
 
 // MarshalerUnmarshaler provides both Marshaler and Unmarshaler implementations
@@ -52,10 +53,10 @@ func (GobMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, erro
 }
 
 // Unmarshal extracts a watermill message from a nats message.
-func (GobMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
+func (GobMarshaler) Unmarshal(natsMsg jetstream.Msg) (*message.Message, error) {
 	buf := new(bytes.Buffer)
 
-	_, err := buf.Write(natsMsg.Data)
+	_, err := buf.Write(natsMsg.Data())
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot write nats message data to buffer")
 	}
@@ -88,9 +89,9 @@ func (JSONMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, err
 }
 
 // Unmarshal extracts a watermill message from a nats message.
-func (JSONMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
+func (JSONMarshaler) Unmarshal(natsMsg jetstream.Msg) (*message.Message, error) {
 	var decodedMsg message.Message
-	err := json.Unmarshal(natsMsg.Data, &decodedMsg)
+	err := json.Unmarshal(natsMsg.Data(), &decodedMsg)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot decode message")
 	}
@@ -125,10 +126,10 @@ func (*NATSMarshaler) Marshal(topic string, msg *message.Message) (*nats.Msg, er
 }
 
 // Unmarshal extracts a watermill message from a nats message.
-func (*NATSMarshaler) Unmarshal(natsMsg *nats.Msg) (*message.Message, error) {
-	data := natsMsg.Data
+func (*NATSMarshaler) Unmarshal(natsMsg jetstream.Msg) (*message.Message, error) {
+	data := natsMsg.Data()
 
-	hdr := natsMsg.Header
+	hdr := natsMsg.Headers()
 
 	id := hdr.Get(WatermillUUIDHdr)
 

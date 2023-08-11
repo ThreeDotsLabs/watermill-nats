@@ -38,7 +38,7 @@ func TestMarshalers(t *testing.T) {
 			b, err := marshaler.Marshal("topic", msg)
 			require.NoError(t, err)
 
-			unmarshaledMsg, err := marshaler.Unmarshal(b)
+			unmarshaledMsg, err := marshaler.Unmarshal(nats2.NewJetstreamCompat(b))
 			require.NoError(t, err)
 
 			assert.True(t, msg.Equals(unmarshaledMsg))
@@ -72,7 +72,7 @@ func TestMarshalers_multiple_messages_async(t *testing.T) {
 					b, err := tc.marshaler.Marshal("topic", msg)
 					require.NoError(t, err)
 
-					unmarshaledMsg, err := tc.marshaler.Unmarshal(b)
+					unmarshaledMsg, err := tc.marshaler.Unmarshal(nats2.NewJetstreamCompat(b))
 
 					require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func BenchmarkMarshalers(b *testing.B) {
 					marshaled, err := tc.marshaler.Marshal("topic", msg)
 					require.NoError(b, err)
 
-					unmarshaledMsg, err := tc.marshaler.Unmarshal(marshaled)
+					unmarshaledMsg, err := tc.marshaler.Unmarshal(nats2.NewJetstreamCompat(marshaled))
 					require.NoError(b, err)
 
 					assert.True(b, msg.Equals(unmarshaledMsg))
@@ -121,7 +121,7 @@ func TestNatsMarshaler_Error_Multiple_Values_In_Single_Header(t *testing.T) {
 
 	marshaler := nats2.NATSMarshaler{}
 
-	_, err := marshaler.Unmarshal(b)
+	_, err := marshaler.Unmarshal(nats2.NewJetstreamCompat(b))
 
 	require.Error(t, err)
 }
@@ -153,7 +153,7 @@ func assertReservedKey(t *testing.T, natsMsg *nats.Msg, hdr string, unmarshaler 
 	natsMsg.Header.Add(hdr, uuid.NewString())
 	defer natsMsg.Header.Del(hdr)
 	assert.Equal(t, 2, len(natsMsg.Header))
-	msg, err := unmarshaler.Unmarshal(natsMsg)
+	msg, err := unmarshaler.Unmarshal(nats2.NewJetstreamCompat(natsMsg))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(msg.Metadata))
 }

@@ -3,6 +3,7 @@ package protobuf
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -27,10 +28,10 @@ func (*Marshaler) Marshal(topic string, m *message.Message) (*nats.Msg, error) {
 	return natsMsg, nil
 }
 
-func (*Marshaler) Unmarshal(msg *nats.Msg) (*message.Message, error) {
+func (*Marshaler) Unmarshal(msg jetstream.Msg) (*message.Message, error) {
 	pbMsg := &Message{}
 
-	err := proto.Unmarshal(msg.Data, pbMsg)
+	err := proto.Unmarshal(msg.Data(), pbMsg)
 
 	if err != nil {
 		return nil, err
