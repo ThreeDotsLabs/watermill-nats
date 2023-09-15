@@ -27,6 +27,7 @@ type SubscriberConfig struct {
 	Logger              watermill.LoggerAdapter
 	AckWaitTimeout      time.Duration
 	ResourceInitializer ConsumerBuilder
+	NakDelay            Delay
 }
 
 type ResourceInitializerOpt func(config *SubscriberConfig) ConsumerBuilder
