@@ -27,12 +27,15 @@ type Publisher struct {
 func NewPublisher(config *PublisherConfig) (*Publisher, error) {
 	config.setDefaults()
 
-	nc, err := nats.Connect(config.URL)
+	nc := config.Conn
+	if nc == nil {
+		var err error
+		nc, err = nats.Connect(config.URL)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect: %w", err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect: %w", err)
+		}
 	}
-
 	return newPublisher(nc, config)
 }
 

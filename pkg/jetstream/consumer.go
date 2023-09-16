@@ -9,7 +9,7 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type ConsumerBuilder func(ctx context.Context, js jetstream.JetStream, topic string) (
+type ResourceInitializer func(ctx context.Context, js jetstream.JetStream, topic string) (
 	jetstream.Consumer,
 	func(context.Context, watermill.LoggerAdapter),
 	error)
@@ -26,7 +26,7 @@ func defaultConsumerNamer(topic string, group string) string {
 // ExistingConsumer is used to connect to a stream/consumer that already exist with the given topic name - it will not attempt creation of any broker-managed resources.
 // It takes as an argument a function to transform the topic into a consumer name, passing nil will invoke the default behavior
 // consumerName := fmt.Sprintf("watermill__%s", topic)
-func ExistingConsumer(consumerNamer ConsumerNamer, group string) ConsumerBuilder {
+func ExistingConsumer(consumerNamer ConsumerNamer, group string) ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer, func(context.Context, watermill.LoggerAdapter), error) {
 		stream, err := js.Stream(ctx, topic)
 		if err != nil {
@@ -48,7 +48,7 @@ func ExistingConsumer(consumerNamer ConsumerNamer, group string) ConsumerBuilder
 
 // GroupedConsumer builds a callback to create a consumer in the given group.
 // The closing function is not returned since a single subscription in the group cannot know when the backing consumer should be deleted.
-func GroupedConsumer(groupName string) ConsumerBuilder {
+func GroupedConsumer(groupName string) ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer, func(context.Context, watermill.LoggerAdapter), error) {
 		consumer, _, err := createOrUpdateConsumerWithCloser(ctx, js, topic, groupName, defaultConsumerNamer)
 		return consumer, nil, err
@@ -56,7 +56,7 @@ func GroupedConsumer(groupName string) ConsumerBuilder {
 }
 
 // EphemeralConsumer builds a callback to create a consumer, returning a function that will be used to delete the broker-managed consumer.
-func EphemeralConsumer() ConsumerBuilder {
+func EphemeralConsumer() ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer,
 		func(context.Context, watermill.LoggerAdapter),
 		error) {

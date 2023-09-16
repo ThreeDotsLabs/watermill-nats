@@ -6,11 +6,16 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/nats-io/nats.go"
 )
 
 // PublisherConfig defines the watermill configuration for a JetStream publisher
 type PublisherConfig struct {
-	URL    string
+	// URL is the path to the NATS jetstream-enabled broker
+	URL string
+	// Conn is an optional *nats.Conn that can be provided instead of using a watermill-managed connection to URL
+	Conn *nats.Conn
+	// Logger is a watermill logger (defaults to stdout with debug / trace disabled)
 	Logger watermill.LoggerAdapter
 }
 
@@ -23,14 +28,21 @@ func (p *PublisherConfig) setDefaults() {
 
 // SubscriberConfig defines the watermill configuration for a JetStream subscriber
 type SubscriberConfig struct {
-	URL                 string
-	Logger              watermill.LoggerAdapter
-	AckWaitTimeout      time.Duration
-	ResourceInitializer ConsumerBuilder
-	NakDelay            Delay
+	// URL is the path to the NATS jetstream-enabled broker
+	URL string
+	// Conn is an optional *nats.Conn that can be provided instead of using a watermill-managed connection to URL
+	// TODO: should we expose jetstream here?  Currently need the NATS conn for graceful subscription shutdown:
+	// https://github.com/nats-io/nats.go/issues/1328
+	Conn *nats.Conn
+	// Logger is a watermill logger (defaults to stdout with debug / trace disabled)
+	Logger watermill.LoggerAdapter
+	// AckWaitTimeout is how long watermill should wait for your application to finish processing a given message
+	AckWaitTimeout time.Duration
+	// ResourceInitializer is a custom function to turn a topic and consumer group into the necessary jetstream resources
+	ResourceInitializer ResourceInitializer
+	// NakDelay provides a delay function that can be used to delay reprocessing and eventually terminate
+	NakDelay Delay
 }
-
-type ResourceInitializerOpt func(config *SubscriberConfig) ConsumerBuilder
 
 // setDefaults sets default values needed for a subscriber if unset
 func (s *SubscriberConfig) setDefaults() {

@@ -28,17 +28,24 @@ type Subscriber struct {
 	outputsWg       *sync.WaitGroup
 	closeTimeout    time.Duration
 	subsLock        *sync.RWMutex
-	consumerBuilder ConsumerBuilder
+	consumerBuilder ResourceInitializer
 	nakDelay        Delay
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
 func NewSubscriber(config *SubscriberConfig) (*Subscriber, error) {
 	config.setDefaults()
-	nc, err := nats.Connect(config.URL)
-	if err != nil {
-		return nil, err
+
+	nc := config.Conn
+	if nc == nil {
+		var err error
+		nc, err = nats.Connect(config.URL)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect: %w", err)
+		}
 	}
+
 	return newSubscriber(nc, config)
 }
 
