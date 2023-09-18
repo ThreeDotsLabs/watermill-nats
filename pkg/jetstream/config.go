@@ -17,12 +17,17 @@ type PublisherConfig struct {
 	Conn *nats.Conn
 	// Logger is a watermill logger (defaults to stdout with debug / trace disabled)
 	Logger watermill.LoggerAdapter
+	// ConfigureStream is a custom function that can be used to define stream configuration from a topic.  Publisher uses it to calculate publish destination from topic.
+	ConfigureStream StreamConfigurator
 }
 
 // setDefaults sets default values needed for a publisher if unset
 func (p *PublisherConfig) setDefaults() {
 	if p.Logger == nil {
 		p.Logger = watermill.NewStdLogger(false, false)
+	}
+	if p.ConfigureStream == nil {
+		p.ConfigureStream = defaultStreamConfigurator
 	}
 }
 
@@ -42,6 +47,10 @@ type SubscriberConfig struct {
 	ResourceInitializer ResourceInitializer
 	// NakDelay provides a delay function that can be used to delay reprocessing and eventually terminate
 	NakDelay Delay
+	// ConfigureStream is a custom function that can be used to define stream configuration from a topic.  Publisher uses it to calculate publish destination from topic.
+	ConfigureStream StreamConfigurator
+	// ConfigureConsumer is a custom function that can be used to define consumer configuration from a topic.  Publisher uses it to calculate publish destination from topic.
+	ConfigureConsumer ConsumerConfigurator
 }
 
 // setDefaults sets default values needed for a subscriber if unset
@@ -56,5 +65,13 @@ func (s *SubscriberConfig) setDefaults() {
 
 	if s.ResourceInitializer == nil {
 		s.ResourceInitializer = EphemeralConsumer()
+	}
+
+	if s.ConfigureStream == nil {
+		s.ConfigureStream = defaultStreamConfigurator
+	}
+
+	if s.ConfigureConsumer == nil {
+		s.ConfigureConsumer = defaultConsumerConfigurator
 	}
 }

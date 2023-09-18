@@ -3,7 +3,6 @@ package jetstream
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/ThreeDotsLabs/watermill"
 	wmnats "github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
@@ -16,11 +15,11 @@ var _ message.Publisher = &Publisher{}
 
 // Publisher provides a watermill publisher interface to NATS JetStream
 type Publisher struct {
-	nc     *nats.Conn
-	js     jetstream.JetStream
-	m      wmnats.Marshaler
-	logger watermill.LoggerAdapter
-	known  sync.Map
+	nc              *nats.Conn
+	js              jetstream.JetStream
+	m               wmnats.Marshaler
+	logger          watermill.LoggerAdapter
+	configureStream StreamConfigurator
 }
 
 // NewPublisher creates a new watermill JetStream publisher.
@@ -47,19 +46,20 @@ func newPublisher(nc *nats.Conn, config *PublisherConfig) (*Publisher, error) {
 	}
 
 	return &Publisher{
-		nc:     nc,
-		js:     jsapi,
-		m:      &wmnats.NATSMarshaler{},
-		logger: config.Logger,
-		known:  sync.Map{},
+		nc:              nc,
+		js:              jsapi,
+		m:               &wmnats.NATSMarshaler{},
+		logger:          config.Logger,
+		configureStream: config.ConfigureStream,
 	}, nil
 }
 
 // Publish sends provided watermill messages to the given topic.
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
+	streamConfig := p.configureStream(topic)
 	for _, m := range messages {
 		// TODO: how can we handle eg routing metadata without fallback to *nats.Msg
-		nm, err := p.m.Marshal(topic, m)
+		nm, err := p.m.Marshal(streamConfig.Name, m)
 		if err != nil {
 			return fmt.Errorf("failed to marshal: %w", err)
 		}

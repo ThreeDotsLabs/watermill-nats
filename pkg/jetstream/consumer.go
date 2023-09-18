@@ -14,31 +14,53 @@ type ResourceInitializer func(ctx context.Context, js jetstream.JetStream, topic
 	func(context.Context, watermill.LoggerAdapter),
 	error)
 
-type ConsumerNamer func(string, string) string
+type StreamConfigurator func(string) jetstream.StreamConfig
 
-func defaultConsumerNamer(topic string, group string) string {
-	if group != "" {
-		return fmt.Sprintf("watermill__%s__%s", group, topic)
+func defaultStreamConfigurator(topic string) jetstream.StreamConfig {
+	return jetstream.StreamConfig{
+		Name:     topic,
+		Subjects: []string{topic},
 	}
-	return fmt.Sprintf("watermill__%s", topic)
+}
+
+func workQueueStreamConfigurator(topic string) jetstream.StreamConfig {
+	return jetstream.StreamConfig{
+		Name:      topic,
+		Subjects:  []string{topic},
+		Retention: jetstream.WorkQueuePolicy,
+	}
+}
+
+type ConsumerConfigurator func(string, string) jetstream.ConsumerConfig
+
+func defaultConsumerConfigurator(topic string, group string) jetstream.ConsumerConfig {
+	var name string
+	if group != "" {
+		name = fmt.Sprintf("watermill__%s__%s", group, topic)
+	} else {
+		name = fmt.Sprintf("watermill__%s", topic)
+	}
+
+	return jetstream.ConsumerConfig{Name: name, AckPolicy: jetstream.AckExplicitPolicy}
 }
 
 // ExistingConsumer is used to connect to a stream/consumer that already exist with the given topic name - it will not attempt creation of any broker-managed resources.
 // It takes as an argument a function to transform the topic into a consumer name, passing nil will invoke the default behavior
 // consumerName := fmt.Sprintf("watermill__%s", topic)
-func ExistingConsumer(consumerNamer ConsumerNamer, group string) ResourceInitializer {
+func ExistingConsumer(consumerNamer ConsumerConfigurator, group string) ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer, func(context.Context, watermill.LoggerAdapter), error) {
-		stream, err := js.Stream(ctx, topic)
+		streamConfig := defaultStreamConfigurator(topic)
+
+		stream, err := js.Stream(ctx, streamConfig.Name)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get stream for topic %s: %w", topic, err)
 		}
 
-		var consumerName string
 		if consumerNamer == nil {
-			consumerName = fmt.Sprintf("watermill__%s", topic)
-		} else {
-			consumerName = consumerNamer(topic, group)
+			consumerNamer = defaultConsumerConfigurator
 		}
+
+		consumerName := consumerNamer(topic, group).Name
 
 		consumer, err := stream.Consumer(ctx, consumerName)
 
@@ -50,7 +72,7 @@ func ExistingConsumer(consumerNamer ConsumerNamer, group string) ResourceInitial
 // The closing function is not returned since a single subscription in the group cannot know when the backing consumer should be deleted.
 func GroupedConsumer(groupName string) ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer, func(context.Context, watermill.LoggerAdapter), error) {
-		consumer, _, err := createOrUpdateConsumerWithCloser(ctx, js, topic, groupName, defaultConsumerNamer)
+		consumer, _, err := createOrUpdateConsumerWithCloser(ctx, js, topic, groupName, workQueueStreamConfigurator, defaultConsumerConfigurator)
 		return consumer, nil, err
 	}
 }
@@ -60,32 +82,34 @@ func EphemeralConsumer() ResourceInitializer {
 	return func(ctx context.Context, js jetstream.JetStream, topic string) (jetstream.Consumer,
 		func(context.Context, watermill.LoggerAdapter),
 		error) {
-		return createOrUpdateConsumerWithCloser(ctx, js, topic, watermill.NewShortUUID(), defaultConsumerNamer)
+		return createOrUpdateConsumerWithCloser(ctx, js, topic, watermill.NewShortUUID(), defaultStreamConfigurator, defaultConsumerConfigurator)
 	}
 }
 
-func createOrUpdateConsumerWithCloser(ctx context.Context, js jetstream.JetStream, topic, group string, namer ConsumerNamer) (
+func createOrUpdateConsumerWithCloser(ctx context.Context,
+	js jetstream.JetStream,
+	topic, group string,
+	configureStream StreamConfigurator,
+	configureConsumer ConsumerConfigurator) (
 	jetstream.Consumer,
 	func(context.Context, watermill.LoggerAdapter),
 	error) {
-	stream, err := js.Stream(ctx, topic)
+	streamConfig := configureStream(topic)
+	stream, err := js.Stream(ctx, streamConfig.Name)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get stream for topic %s: %w", topic, err)
 	}
 
-	name := namer(topic, group)
+	cfg := configureConsumer(topic, group)
 
-	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Name:      name,
-		AckPolicy: jetstream.AckExplicitPolicy,
-	})
+	consumer, err := stream.CreateOrUpdateConsumer(ctx, cfg)
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get consumer for topic %s: %w", topic, err)
 	}
 
 	return consumer, func(cctx context.Context, logger watermill.LoggerAdapter) {
-		deleteErr := stream.DeleteConsumer(cctx, name)
+		deleteErr := stream.DeleteConsumer(cctx, cfg.Name)
 		if deleteErr != nil {
 			logger.Error("failed to delete consumer", deleteErr, watermill.LogFields{})
 		}

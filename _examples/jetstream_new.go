@@ -35,7 +35,7 @@ func main() {
 	topic := "example_topic"
 	// this is the default watermill will look for if no namer func passed
 	consumer := fmt.Sprintf("watermill__%s", topic)
-	var namer jetstream.ConsumerNamer
+	var namer jetstream.ConsumerConfigurator
 
 	// test a custom namer
 	/*
