@@ -23,7 +23,7 @@ type Publisher struct {
 }
 
 // NewPublisher creates a new watermill JetStream publisher.
-func NewPublisher(config *PublisherConfig) (*Publisher, error) {
+func NewPublisher(config PublisherConfig) (*Publisher, error) {
 	config.setDefaults()
 
 	nc := config.Conn
@@ -35,7 +35,7 @@ func NewPublisher(config *PublisherConfig) (*Publisher, error) {
 			return nil, fmt.Errorf("failed to connect: %w", err)
 		}
 	}
-	return newPublisher(nc, config)
+	return newPublisher(nc, &config)
 }
 
 func newPublisher(nc *nats.Conn, config *PublisherConfig) (*Publisher, error) {

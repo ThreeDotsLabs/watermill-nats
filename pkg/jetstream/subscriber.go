@@ -35,7 +35,7 @@ type Subscriber struct {
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
-func NewSubscriber(config *SubscriberConfig) (*Subscriber, error) {
+func NewSubscriber(config SubscriberConfig) (*Subscriber, error) {
 	config.setDefaults()
 
 	nc := config.Conn
@@ -48,7 +48,7 @@ func NewSubscriber(config *SubscriberConfig) (*Subscriber, error) {
 		}
 	}
 
-	return newSubscriber(nc, config)
+	return newSubscriber(nc, &config)
 }
 
 func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error) {
