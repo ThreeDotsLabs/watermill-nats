@@ -16,6 +16,9 @@ test_race:
 test_stress:
 	STRESS_TEST_COUNT=4 go test -tags=stress -parallel 30 -timeout=45m ./pkg/nats...
 
+test_codecov:
+	go test -coverprofile=coverage.out -covermode=atomic ./pkg/nats...
+
 test_reconnect:
 	go test -tags=reconnect ./pkg/nats...
 
@@ -36,6 +39,9 @@ jetstream_test_stress:
 
 jetstream_test_reconnect:
 	go test -tags=reconnect ./pkg/jetstream...
+
+jetstream_codecov:
+	go test -coverprofile=coverage.out -covermode=atomic ./pkg/jetstream...
 
 BENCHCNT := 1
 
