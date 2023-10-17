@@ -72,7 +72,7 @@ func main() {
 		panic(ce)
 	}
 
-	subscriber, err := jetstream.NewSubscriber(&jetstream.SubscriberConfig{
+	subscriber, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
 		URL:                 svr.ClientURL(),
 		Logger:              logger,
 		AckWaitTimeout:      5 * time.Second,
@@ -100,7 +100,7 @@ func main() {
 		logger.Info("subscriber stopped", mainLogFields)
 	}()
 
-	publisher, err := jetstream.NewPublisher(&jetstream.PublisherConfig{
+	publisher, err := jetstream.NewPublisher(jetstream.PublisherConfig{
 		URL:    svr.ClientURL(),
 		Logger: logger,
 	})
