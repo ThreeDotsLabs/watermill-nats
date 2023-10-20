@@ -40,7 +40,7 @@ jetstream_test_stress:
 jetstream_test_reconnect:
 	go test -tags=reconnect ./pkg/jetstream...
 
-jetstream_codecov:
+jetstream_test_codecov:
 	go test -coverprofile=coverage.out -covermode=atomic ./pkg/jetstream...
 
 BENCHCNT := 1
