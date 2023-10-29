@@ -35,6 +35,8 @@ type Subscriber struct {
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
+// This middleware is currently considered an experimental / beta release - for production use
+// it is recommended to use watermill-nats/pkg/nats.Subscriber with JetStream enabled.
 func NewSubscriber(config SubscriberConfig) (*Subscriber, error) {
 	config.setDefaults()
 

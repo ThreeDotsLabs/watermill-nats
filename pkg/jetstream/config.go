@@ -1,4 +1,4 @@
-// Package jetstream is in early stages and should not be considered a stable API at this time.
+// Package jetstream is a beta release and should not be considered a stable API at this time.
 // Targeting a first stable release in v2.1
 package jetstream
 

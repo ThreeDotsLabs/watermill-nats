@@ -23,6 +23,8 @@ type Publisher struct {
 }
 
 // NewPublisher creates a new watermill JetStream publisher.
+// This middleware is currently considered an experimental / beta release - for production use
+// it is recommended to use watermill-nats/pkg/nats.Publisher with JetStream enabled.
 func NewPublisher(config PublisherConfig) (*Publisher, error) {
 	config.setDefaults()
 
