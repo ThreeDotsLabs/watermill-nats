@@ -103,6 +103,7 @@ func process(messages <-chan *message.Message) {
 
 		// we need to Acknowledge that we received and processed the message,
 		// otherwise, it will be resent over and over again.
+		// Note that ack is a no-op under the hood for core-nats but it is still needed to fit watermill flow.
 		msg.Ack()
 	}
 }
