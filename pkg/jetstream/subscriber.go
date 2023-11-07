@@ -19,20 +19,20 @@ var _ message.Subscriber = &Subscriber{}
 
 // Subscriber provides a watermill subscriber interface to NATS JetStream
 type Subscriber struct {
-	nc                 *nats.Conn
-	js                 jetstream.JetStream
-	logger             watermill.LoggerAdapter
-	closed             bool
-	closing            chan struct{}
-	ackWait            time.Duration
-	outputsWg          *sync.WaitGroup
-	closeTimeout       time.Duration
-	subsLock           *sync.RWMutex
-	consumerBuilder    ResourceInitializer
-	nakDelay           Delay
-	configureStream    StreamConfigurator
-	configureConsumer  ConsumerConfigurator
-	pullConsumeOptions []jetstream.PullConsumeOpt
+	nc                *nats.Conn
+	js                jetstream.JetStream
+	logger            watermill.LoggerAdapter
+	closed            bool
+	closing           chan struct{}
+	ackWait           time.Duration
+	outputsWg         *sync.WaitGroup
+	closeTimeout      time.Duration
+	subsLock          *sync.RWMutex
+	consumerBuilder   ResourceInitializer
+	nakDelay          Delay
+	configureStream   StreamConfigurator
+	configureConsumer ConsumerConfigurator
+	consumeOptions    []jetstream.PullConsumeOpt
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
@@ -60,18 +60,18 @@ func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error)
 		return nil, fmt.Errorf("initializing jetstream: %w", err)
 	}
 	return &Subscriber{
-		nc:                 nc,
-		js:                 js,
-		closing:            make(chan struct{}),
-		logger:             config.Logger,
-		ackWait:            config.AckWaitTimeout,
-		outputsWg:          &sync.WaitGroup{},
-		closeTimeout:       5 * time.Second,
-		subsLock:           &sync.RWMutex{},
-		consumerBuilder:    config.ResourceInitializer,
-		configureStream:    config.ConfigureStream,
-		configureConsumer:  config.ConfigureConsumer,
-		pullConsumeOptions: config.PullConsumeOptions,
+		nc:                nc,
+		js:                js,
+		closing:           make(chan struct{}),
+		logger:            config.Logger,
+		ackWait:           config.AckWaitTimeout,
+		outputsWg:         &sync.WaitGroup{},
+		closeTimeout:      5 * time.Second,
+		subsLock:          &sync.RWMutex{},
+		consumerBuilder:   config.ResourceInitializer,
+		configureStream:   config.ConfigureStream,
+		configureConsumer: config.ConfigureConsumer,
+		consumeOptions:    config.ConsumeOptions,
 	}, nil
 }
 
@@ -104,7 +104,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 
 	s.outputsWg.Add(1)
 
-	return consume(ctx, s.closing, consumer, s.pullConsumeOptions, s.handleMsg, cleanup)
+	return consume(ctx, s.closing, consumer, s.consumeOptions, s.handleMsg, cleanup)
 }
 
 // Close closes the subscriber and signals to close any subscriptions it created along with the underlying connection.

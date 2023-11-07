@@ -53,8 +53,8 @@ type SubscriberConfig struct {
 	// ConfigureConsumer is a custom function that can be used to define consumer configuration from a topic.  Publisher uses it to calculate publish destination from topic.
 	ConfigureConsumer ConsumerConfigurator
 
-	// PullConsumeOption is the option that adjusts pull consume behavior
-	PullConsumeOptions []natsJS.PullConsumeOpt
+	// ConsumeOptions is the option that adjusts consume behavior
+	ConsumeOptions []natsJS.PullConsumeOpt
 }
 
 // setDefaults sets default values needed for a subscriber if unset
