@@ -120,6 +120,7 @@ func createOrUpdateConsumerWithCloser(ctx context.Context,
 func consume(ctx context.Context,
 	closing chan struct{},
 	consumer jetstream.Consumer,
+	pullConsumeOpts []jetstream.PullConsumeOpt,
 	cb handleFunc,
 	deferred func(),
 ) (chan *message.Message, error) {
@@ -129,7 +130,7 @@ func consume(ctx context.Context,
 	// add support for batching pull consumers using consumer.Fetch / FetchNoWait
 	cc, err := consumer.Consume(func(msg jetstream.Msg) {
 		cb(ctx, msg, output)
-	})
+	}, pullConsumeOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream consumer: %w", err)
 	}

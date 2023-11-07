@@ -7,6 +7,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/nats-io/nats.go"
+	natsJS "github.com/nats-io/nats.go/jetstream"
 )
 
 // PublisherConfig defines the watermill configuration for a JetStream publisher
@@ -51,6 +52,9 @@ type SubscriberConfig struct {
 	ConfigureStream StreamConfigurator
 	// ConfigureConsumer is a custom function that can be used to define consumer configuration from a topic.  Publisher uses it to calculate publish destination from topic.
 	ConfigureConsumer ConsumerConfigurator
+
+	// ConsumeOptions is the option that adjusts consume behavior
+	ConsumeOptions []natsJS.PullConsumeOpt
 }
 
 // setDefaults sets default values needed for a subscriber if unset

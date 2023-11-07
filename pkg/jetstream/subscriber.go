@@ -32,6 +32,7 @@ type Subscriber struct {
 	nakDelay          Delay
 	configureStream   StreamConfigurator
 	configureConsumer ConsumerConfigurator
+	consumeOptions    []jetstream.PullConsumeOpt
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
@@ -70,6 +71,7 @@ func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error)
 		consumerBuilder:   config.ResourceInitializer,
 		configureStream:   config.ConfigureStream,
 		configureConsumer: config.ConfigureConsumer,
+		consumeOptions:    config.ConsumeOptions,
 	}, nil
 }
 
@@ -102,7 +104,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 
 	s.outputsWg.Add(1)
 
-	return consume(ctx, s.closing, consumer, s.handleMsg, cleanup)
+	return consume(ctx, s.closing, consumer, s.consumeOptions, s.handleMsg, cleanup)
 }
 
 // Close closes the subscriber and signals to close any subscriptions it created along with the underlying connection.
