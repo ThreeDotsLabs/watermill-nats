@@ -46,7 +46,13 @@ and submit your pull request via GitHub.
 
 If you didn't find the answer to your question in [the documentation](https://watermill.io/), feel free to ask us directly!
 
-Please join us on the `#watermill` channel on the [Gophers slack](https://gophers.slack.com/): You can get an invite [here](https://gophersinvite.herokuapp.com/).
+Please join us on the `#watermill` channel on the [Three Dots Labs Discord](https://discord.gg/QV6VFg4YQE).
+
+Every bit of feedback is very welcome and appreciated. Please submit it using [the survey](https://www.surveymonkey.com/r/WZXD392).
+
+## Why the name?
+
+It processes streams!
 
 ## License
 
