@@ -122,7 +122,7 @@ func consume(ctx context.Context,
 	consumer jetstream.Consumer,
 	pullConsumeOpts []jetstream.PullConsumeOpt,
 	cb handleFunc,
-	deferred func(),
+	closer func(),
 ) (chan *message.Message, error) {
 	output := make(chan *message.Message)
 
@@ -135,9 +135,12 @@ func consume(ctx context.Context,
 		return nil, fmt.Errorf("failed to start jetstream consumer: %w", err)
 	}
 
-	go monitor(ctx, closing, output, func() {
-		defer deferred()
+	go monitor(ctx, closing, func() {
+		close(output)
 		cc.Stop()
+		if closer != nil {
+			closer()
+		}
 	})
 
 	return output, nil
@@ -146,14 +149,12 @@ func consume(ctx context.Context,
 // monitor will watch for context / subscriber closure, close the output channel and apply any other necessary cleanup.
 func monitor(ctx context.Context,
 	closing chan struct{},
-	output chan *message.Message,
 	after func()) {
-	defer after()
 	select {
 	case <-closing:
 		//unblock
 	case <-ctx.Done():
 		//unblock
 	}
-	close(output)
+	after()
 }
