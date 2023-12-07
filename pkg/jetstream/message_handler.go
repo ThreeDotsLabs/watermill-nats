@@ -41,6 +41,11 @@ func (s *Subscriber) handleMsg(ctx context.Context, msg jetstream.Msg, output ch
 		return
 	}
 
+	s.messagesLock.Lock()
+	s.messagesWG.Add(1)
+	s.messagesLock.Unlock()
+	defer s.messagesWG.Done()
+
 	select {
 	case <-s.closing:
 		s.logger.Trace("Closing, message discarded", messageLogFields)
