@@ -3,6 +3,7 @@ package jetstream
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -117,11 +118,11 @@ func createOrUpdateConsumerWithCloser(ctx context.Context,
 }
 
 // consume manages callback-based consumption of data from the provided JetStream consumer
+
+// consume manages callback-based consumption of data from the provided JetStream consumer
 func consume(ctx context.Context,
-	closing chan struct{},
+	s *Subscriber,
 	consumer jetstream.Consumer,
-	pullConsumeOpts []jetstream.PullConsumeOpt,
-	cb handleFunc,
 	deferred func(),
 ) (chan *message.Message, error) {
 	output := make(chan *message.Message)
@@ -129,16 +130,13 @@ func consume(ctx context.Context,
 	// TODO: this is the closest analog to callback based subscriptions in watermill-nats/pkg/nats
 	// add support for batching pull consumers using consumer.Fetch / FetchNoWait
 	cc, err := consumer.Consume(func(msg jetstream.Msg) {
-		cb(ctx, msg, output)
-	}, pullConsumeOpts...)
+		s.handleMsg(ctx, msg, output)
+	}, s.consumeOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream consumer: %w", err)
 	}
 
-	go monitor(ctx, closing, output, func() {
-		defer deferred()
-		cc.Stop()
-	})
+	go monitor(ctx, s.closing, output, cc, s.messagesWG, deferred)
 
 	return output, nil
 }
@@ -147,13 +145,17 @@ func consume(ctx context.Context,
 func monitor(ctx context.Context,
 	closing chan struct{},
 	output chan *message.Message,
+	consumeContext jetstream.ConsumeContext,
+	messageWg *sync.WaitGroup,
 	after func()) {
-	defer after()
 	select {
 	case <-closing:
 		//unblock
 	case <-ctx.Done():
 		//unblock
 	}
+	consumeContext.Stop()
+	messageWg.Wait()
 	close(output)
+	after()
 }

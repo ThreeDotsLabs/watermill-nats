@@ -108,7 +108,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 
 	s.outputsWG.Add(1)
 
-	return consume(ctx, s.closing, consumer, s.consumeOptions, s.handleMsg, cleanup)
+	return consume(ctx, s, consumer, cleanup)
 }
 
 // Close closes the subscriber and signals to close any subscriptions it created along with the underlying connection.
