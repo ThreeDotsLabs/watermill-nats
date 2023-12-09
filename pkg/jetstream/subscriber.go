@@ -25,7 +25,9 @@ type Subscriber struct {
 	closed            bool
 	closing           chan struct{}
 	ackWait           time.Duration
-	outputsWg         *sync.WaitGroup
+	outputsWG         *sync.WaitGroup
+	messagesWG        *sync.WaitGroup
+	messagesLock      *sync.RWMutex
 	closeTimeout      time.Duration
 	subsLock          *sync.RWMutex
 	consumerBuilder   ResourceInitializer
@@ -65,7 +67,9 @@ func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error)
 		closing:           make(chan struct{}),
 		logger:            config.Logger,
 		ackWait:           config.AckWaitTimeout,
-		outputsWg:         &sync.WaitGroup{},
+		outputsWG:         &sync.WaitGroup{},
+		messagesWG:        &sync.WaitGroup{},
+		messagesLock:      &sync.RWMutex{},
 		closeTimeout:      5 * time.Second,
 		subsLock:          &sync.RWMutex{},
 		consumerBuilder:   config.ResourceInitializer,
@@ -95,16 +99,16 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 		if closer != nil {
 			defer closer(ctx, s.logger)
 		}
-		s.outputsWg.Done()
+		s.outputsWG.Done()
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize jetstream consumer: %w", err)
 	}
 
-	s.outputsWg.Add(1)
+	s.outputsWG.Add(1)
 
-	return consume(ctx, s.closing, consumer, s.consumeOptions, s.handleMsg, cleanup)
+	return consume(ctx, s, consumer, cleanup)
 }
 
 // Close closes the subscriber and signals to close any subscriptions it created along with the underlying connection.
@@ -117,6 +121,10 @@ func (s *Subscriber) Close() error {
 	}
 	s.closed = true
 
+	s.messagesLock.Lock()
+	s.messagesWG.Wait()
+	s.messagesLock.Unlock()
+
 	close(s.closing)
 
 	// TODO: if we support shared connections don't always close
@@ -124,7 +132,7 @@ func (s *Subscriber) Close() error {
 		return fmt.Errorf("failed to drain connection: %w", err)
 	}
 
-	if watermillSync.WaitGroupTimeout(s.outputsWg, s.closeTimeout) {
+	if watermillSync.WaitGroupTimeout(s.outputsWG, s.closeTimeout) {
 		return fmt.Errorf("output wait group did not finish within alloted %s", s.closeTimeout.String())
 	}
 
