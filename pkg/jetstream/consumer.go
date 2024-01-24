@@ -154,7 +154,7 @@ func monitor(ctx context.Context,
 	case <-ctx.Done():
 		//unblock
 	}
-	consumeContext.Stop()
+	consumeContext.Drain()
 	messageWg.Wait()
 	close(output)
 	after()

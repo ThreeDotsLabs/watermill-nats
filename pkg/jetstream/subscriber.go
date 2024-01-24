@@ -120,17 +120,20 @@ func (s *Subscriber) Close() error {
 		return nil
 	}
 	s.closed = true
-
-	s.messagesLock.Lock()
-	s.messagesWG.Wait()
-	s.messagesLock.Unlock()
+	/*
+		s.messagesLock.Lock()
+		s.messagesWG.Wait()
+		s.messagesLock.Unlock()
+	*/
 
 	close(s.closing)
 
 	// TODO: if we support shared connections don't always close
-	if err := s.nc.Drain(); err != nil {
-		return fmt.Errorf("failed to drain connection: %w", err)
-	}
+	/*
+		if err := s.nc.Drain(); err != nil {
+			return fmt.Errorf("failed to drain connection: %w", err)
+		}
+	*/
 
 	if watermillSync.WaitGroupTimeout(s.outputsWG, s.closeTimeout) {
 		return fmt.Errorf("output wait group did not finish within alloted %s", s.closeTimeout.String())
