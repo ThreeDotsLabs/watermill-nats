@@ -137,7 +137,7 @@ func consume(ctx context.Context,
 
 	go monitor(ctx, closing, output, func() {
 		defer deferred()
-		cc.Stop()
+		cc.Drain()
 	})
 
 	return output, nil
