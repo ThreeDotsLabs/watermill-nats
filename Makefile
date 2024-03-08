@@ -2,26 +2,48 @@ up:
 	docker-compose up -d
 
 test:
-	go test -parallel 20 ./pkg...
+	go test -parallel 20 ./pkg/nats...
 
 test_v:
-	go test -parallel 20 -v ./pkg...
+	go test -parallel 20 -v ./pkg/nats...
 
 test_short:
-	go test -parallel 20 ./pkg... -short
+	go test -parallel 20 ./pkg/nats... -short
 
 test_race:
-	go test ./pkg... -short -race
+	go test ./pkg/nats... -short -race
 
 test_stress:
-	STRESS_TEST_COUNT=4 go test -tags=stress -parallel 30 -timeout=45m ./pkg...
+	STRESS_TEST_COUNT=4 go test -tags=stress -parallel 30 -timeout=45m ./pkg/nats...
 
 test_codecov:
 	echo "this is a no-op because it times out on github runners but you could try"
-	echo "go test -coverprofile=coverage.out -covermode=atomic ./pkg... -short"
+	echo "go test -coverprofile=coverage.out -covermode=atomic ./pkg/nats... -short"
 
 test_reconnect:
-	go test -tags=reconnect ./pkg...
+	go test -tags=reconnect ./pkg/nats...
+
+jetstream_test:
+	go test -parallel 20 ./pkg/jetstream...
+
+jetstream_test_v:
+	go test -parallel 20 -v ./pkg/jetstream...
+
+jetstream_test_short:
+	go test -parallel 20 ./pkg/jetstream... -short
+
+jetstream_test_race:
+	go test ./pkg/jetstream... -short -race
+
+jetstream_test_stress:
+	STRESS_TEST_COUNT=4 go test -tags=stress -parallel 30 -timeout=45m ./pkg/jetstream...
+
+jetstream_test_reconnect:
+	go test -tags=reconnect ./pkg/jetstream...
+
+jetstream_test_codecov:
+	echo "this is a no-op because it times out on github runners but you could try"
+	echo "go test -coverprofile=coverage.out -covermode=atomic ./pkg/jetstream... -short"
 
 BENCHCNT := 1
 
@@ -53,3 +75,4 @@ update_watermill:
 
 	sed -i '\|go 1\.|d' go.mod
 	go mod edit -fmt
+
