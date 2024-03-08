@@ -55,8 +55,11 @@ func (s *Subscriber) handleMsg(ctx context.Context, msg jetstream.Msg, output ch
 
 	select {
 	case <-m.Acked():
-		// TODO: enable async ack via config
-		err = msg.DoubleAck(ctx)
+		if s.ackAsync {
+			err = msg.Ack()
+		} else {
+			err = msg.DoubleAck(ctx)
+		}
 
 		if err != nil {
 			s.logger.Error("Cannot send ack", err, messageLogFields)

@@ -55,6 +55,9 @@ type SubscriberConfig struct {
 
 	// ConsumeOptions is the option that adjusts consume behavior
 	ConsumeOptions []natsJS.PullConsumeOpt
+
+	// AckAsync enables asynchronous acknowledgement
+	AckAsync bool
 }
 
 // setDefaults sets default values needed for a subscriber if unset

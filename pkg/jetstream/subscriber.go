@@ -33,6 +33,7 @@ type Subscriber struct {
 	configureStream   StreamConfigurator
 	configureConsumer ConsumerConfigurator
 	consumeOptions    []jetstream.PullConsumeOpt
+	ackAsync          bool
 }
 
 // NewSubscriber creates a new watermill JetStream subscriber.
@@ -72,6 +73,7 @@ func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error)
 		configureStream:   config.ConfigureStream,
 		configureConsumer: config.ConfigureConsumer,
 		consumeOptions:    config.ConsumeOptions,
+		ackAsync:          config.AckAsync,
 	}, nil
 }
 
