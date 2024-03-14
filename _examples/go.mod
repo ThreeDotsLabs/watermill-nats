@@ -11,7 +11,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.10.4
 	github.com/nats-io/nats.go v1.33.1
 	github.com/stretchr/testify v1.8.1
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
