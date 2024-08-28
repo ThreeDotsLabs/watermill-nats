@@ -1,5 +1,5 @@
 up:
-	docker-compose up -d
+	docker compose up -d
 
 test:
 	go test -parallel 20 ./pkg/nats...
