@@ -74,6 +74,7 @@ func newSubscriber(nc *nats.Conn, config *SubscriberConfig) (*Subscriber, error)
 		configureConsumer: config.ConfigureConsumer,
 		consumeOptions:    config.ConsumeOptions,
 		ackAsync:          config.AckAsync,
+		nakDelay:          config.NakDelay,
 	}, nil
 }
 
