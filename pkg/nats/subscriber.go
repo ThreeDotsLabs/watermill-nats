@@ -234,10 +234,17 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 			return nil, err
 		}
 
+		var detailer SubjectDetailer
+		if config.SubjectDetailGenerator != nil {
+			config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix)
+		} else {
+			detailer = nil
+		}
+
 		manager, err = newStreamManager(
 			js,
 			config.StreamConfig,
-			config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix),
+			detailer,
 			config.SubjectCalculator,
 			config.QueueGroupPrefix,
 		)

@@ -135,10 +135,17 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 			return nil, err
 		}
 
+		var detailer SubjectDetailer
+		if config.SubjectDetailGenerator != nil {
+			detailer = config.SubjectDetailGenerator(config.StreamName, "")
+		} else {
+			detailer = nil
+		}
+
 		manager, err = newStreamManager(
 			js,
 			config.StreamConfig,
-			config.SubjectDetailGenerator(config.StreamName, ""),
+			detailer,
 			config.SubjectCalculator,
 			"",
 		)
