@@ -51,6 +51,7 @@ type SubscriberConfig struct {
 	Unmarshaler Unmarshaler
 
 	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
+	// Deprecated in favour of SubjectDetailGenerator
 	SubjectCalculator SubjectCalculator
 
 	// NakDelay sets duration after which the NACKed message will be resent.
@@ -59,6 +60,12 @@ type SubscriberConfig struct {
 
 	// JetStream holds JetStream specific settings
 	JetStream JetStreamConfig
+
+	// Stream name is used for the overall stream. This will passed to the subject detail generator and can be used to generate subjects. If "" it will use individual topics for the streams by default.
+	StreamName string
+
+	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects and QueueGroup.
+	SubjectDetailGenerator SubjectDetailGenerator
 }
 
 // SubscriberSubscriptionConfig is the configurationz
@@ -79,7 +86,8 @@ type SubscriberSubscriptionConfig struct {
 	// SubscribeTimeout determines how long subscriber will wait for a successful subscription
 	SubscribeTimeout time.Duration
 
-	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup)
+	// SubjectCalculator is a function used to transform a topic to an array of subjects on creation (defaults to topic as Primary and queueGroupPrefix as QueueGroup).
+	// Deprecated in favour of SubjectDetailGenerator
 	SubjectCalculator SubjectCalculator
 
 	// NakDelay sets duration after which the NACKed message will be resent.
@@ -100,26 +108,35 @@ type SubscriberSubscriptionConfig struct {
 	// that group is removed. A durable queue group (DurablePrefix) allows you to have all members leave
 	// but still maintain state. When a member re-joins, it starts at the last position in that group.
 	QueueGroupPrefix string
+
+	// Stream name is used for the overall stream. This will passed to the subject detail generator and can be used to generate subjects.
+	// If "" it will use individual topics for the streams by default.
+	StreamName string
+
+	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects.
+	SubjectDetailGenerator SubjectDetailGenerator
 }
 
 // GetSubscriberSubscriptionConfig gets the configuration subset needed for individual subscribe calls once a connection has been established
 func (c *SubscriberConfig) GetSubscriberSubscriptionConfig() SubscriberSubscriptionConfig {
 	return SubscriberSubscriptionConfig{
-		Unmarshaler:       c.Unmarshaler,
-		SubscribersCount:  c.SubscribersCount,
-		AckWaitTimeout:    c.AckWaitTimeout,
-		CloseTimeout:      c.CloseTimeout,
-		SubscribeTimeout:  c.SubscribeTimeout,
-		SubjectCalculator: c.SubjectCalculator,
-		NakDelay:          c.NakDelay,
-		JetStream:         c.JetStream,
-		QueueGroupPrefix:  c.QueueGroupPrefix,
+		Unmarshaler:            c.Unmarshaler,
+		SubscribersCount:       c.SubscribersCount,
+		AckWaitTimeout:         c.AckWaitTimeout,
+		CloseTimeout:           c.CloseTimeout,
+		SubscribeTimeout:       c.SubscribeTimeout,
+		SubjectCalculator:      c.SubjectCalculator,
+		NakDelay:               c.NakDelay,
+		JetStream:              c.JetStream,
+		QueueGroupPrefix:       c.QueueGroupPrefix,
+		StreamName:             c.StreamName,
+		SubjectDetailGenerator: c.SubjectDetailGenerator,
 	}
 }
 
 func (c *SubscriberSubscriptionConfig) setDefaults() {
-	if c.SubjectCalculator == nil {
-		c.SubjectCalculator = DefaultSubjectCalculator
+	if c.SubjectCalculator == nil && c.SubjectDetailGenerator == nil {
+		c.SubjectDetailGenerator = NewDefaultSubjectDetailer
 	}
 
 	if c.SubscribersCount <= 0 {
@@ -156,9 +173,8 @@ func (c *SubscriberSubscriptionConfig) Validate() error {
 			)
 		}
 	*/
-
-	if c.SubjectCalculator == nil {
-		return errors.New("SubscriberSubscriptionConfig.SubjectCalculator is required.")
+	if c.SubjectCalculator == nil && c.SubjectDetailGenerator == nil {
+		return errors.New("both SubscriberSubscriptionConfig.SubjectCalculator and SubscriberSubscriptionConfig.SubjectDetailGenerator are missing")
 	}
 
 	return nil
@@ -176,8 +192,8 @@ type Subscriber struct {
 	closed  bool
 	closing chan struct{}
 
-	outputsWg        sync.WaitGroup
-	topicInterpreter *topicInterpreter
+	outputsWg     sync.WaitGroup
+	streamManager *streamManager
 }
 
 // NewSubscriber creates a new Subscriber.
@@ -202,26 +218,33 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 	}
 
 	var connection Connection = conn
-	var interpreter *topicInterpreter
+	var manager *streamManager
 
 	if !config.JetStream.Disabled {
 		js, err := conn.JetStream(config.JetStream.ConnectOptions...)
 
 		connection = &jsConnection{conn, js, config.JetStream}
-
 		if err != nil {
 			return nil, err
 		}
 
-		interpreter = newTopicInterpreter(js, config.SubjectCalculator, config.QueueGroupPrefix)
+		manager, err = newStreamManager(
+			js,
+			config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix),
+			config.SubjectCalculator,
+			config.QueueGroupPrefix,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Subscriber{
-		conn:             connection,
-		logger:           logger,
-		config:           config,
-		closing:          make(chan struct{}),
-		topicInterpreter: interpreter,
+		conn:          connection,
+		logger:        logger,
+		config:        config,
+		closing:       make(chan struct{}),
+		streamManager: manager,
 	}, nil
 }
 
@@ -273,29 +296,17 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string) (<-chan *messa
 	return output, nil
 }
 
-// SubscribeInitialize offers a way to ensure the stream for a topic exists prior to subscribe
-func (s *Subscriber) SubscribeInitialize(topic string) error {
-	err := s.topicInterpreter.ensureStream(topic)
-
-	if err != nil {
-		return errors.Wrap(err, "cannot initialize subscribe")
-	}
-	return nil
-}
-
 func (s *Subscriber) subscribe(topic string, cb nats.MsgHandler) (*nats.Subscription, error) {
 	if s.config.JetStream.ShouldAutoProvision() {
-		err := s.SubscribeInitialize(topic)
+		err := s.streamManager.ensureStreamForTopic(topic)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	subjectDetail := s.config.SubjectCalculator(s.config.QueueGroupPrefix, topic)
-
 	return s.conn.QueueSubscribe(
-		subjectDetail.Primary,
-		subjectDetail.QueueGroup,
+		s.streamManager.Subject(topic),
+		s.streamManager.QueueGroup(topic),
 		cb,
 	)
 }
