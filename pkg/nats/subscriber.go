@@ -236,7 +236,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 
 		var detailer SubjectDetailer
 		if config.SubjectDetailGenerator != nil {
-			config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix)
+			detailer = config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix)
 		} else {
 			detailer = nil
 		}
