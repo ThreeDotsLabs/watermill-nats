@@ -29,6 +29,9 @@ type PublisherConfig struct {
 	// If "" it will use individual topics for the streams by default.
 	StreamName string
 
+	//Config for the individual stream
+	StreamConfig StreamConfig
+
 	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects.
 	SubjectDetailGenerator SubjectDetailGenerator
 }
@@ -48,6 +51,9 @@ type PublisherPublishConfig struct {
 	// Stream name is used for the overall stream. This will passed to the subject detail generator and can be used to generate subjects.
 	// If "" it will use individual topics for the streams by default.
 	StreamName string
+
+	//Config for the individual stream
+	StreamConfig StreamConfig
 
 	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects.
 	SubjectDetailGenerator SubjectDetailGenerator
@@ -82,6 +88,7 @@ func (c PublisherConfig) GetPublisherPublishConfig() PublisherPublishConfig {
 		SubjectCalculator:      c.SubjectCalculator,
 		JetStream:              c.JetStream,
 		StreamName:             c.StreamName,
+		StreamConfig:           c.StreamConfig,
 		SubjectDetailGenerator: c.SubjectDetailGenerator,
 	}
 }
@@ -130,6 +137,7 @@ func NewPublisherWithNatsConn(conn *nats.Conn, config PublisherPublishConfig, lo
 
 		manager, err = newStreamManager(
 			js,
+			config.StreamConfig,
 			config.SubjectDetailGenerator(config.StreamName, ""),
 			config.SubjectCalculator,
 			"",

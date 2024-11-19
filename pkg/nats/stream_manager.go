@@ -5,13 +5,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: Add additional stream configuration here
+type StreamConfig struct {
+	AllowRollup bool
+}
+
 type streamManager struct {
 	SubjectDetailer
-	js nats.JetStreamManager
+	config StreamConfig
+	js     nats.JetStreamManager
 }
 
 func newStreamManager(
 	js nats.JetStreamManager,
+	config StreamConfig,
 	detailer SubjectDetailer,
 	formatter SubjectCalculator,
 	queueGroupPrefix string,
@@ -27,6 +34,7 @@ func newStreamManager(
 
 	return &streamManager{
 		detailer,
+		config,
 		js,
 	}, nil
 }
@@ -50,23 +58,38 @@ func (s *streamManager) ensureStreamForTopic(topic string) error {
 }
 
 func (s *streamManager) ensureStreamForStreamName(streamName string) error {
-	_, err := s.js.StreamInfo(streamName)
+	info, err := s.js.StreamInfo(streamName)
 
 	if err != nil {
-		// TODO: provision durable as well
-		// or simply provide override capability
-		// TODO: Ensure that stream names do not contain disallowed characters
-		// TODO: Add additional stream configuration here
-		_, err = s.js.AddStream(&nats.StreamConfig{
-			Name:        streamName,
-			Description: "",
-			Subjects:    s.AllSubjects(streamName),
-		})
+		if errors.Is(err, nats.ErrStreamNotFound) {
+			// TODO: provision durable as well
+			// or simply provide override capability
+			// TODO: Ensure that stream names do not contain disallowed characters
+			_, err = s.js.AddStream(&nats.StreamConfig{
+				Name:        streamName,
+				Description: "",
+				Subjects:    s.AllSubjects(streamName),
+				AllowRollup: s.config.AllowRollup,
+			})
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = s.js.UpdateStream(&nats.StreamConfig{
+				Name:        streamName,
+				Description: "",
+				Subjects:    s.AllSubjects(streamName),
+				AllowRollup: s.config.AllowRollup,
+			})
+
+			if err != nil {
+				return err
+			}
 		}
+	} else if info.Config.AllowRollup != s.config.AllowRollup {
+
 	}
 
-	return err
+	return nil
 }

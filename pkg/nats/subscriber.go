@@ -64,6 +64,9 @@ type SubscriberConfig struct {
 	// Stream name is used for the overall stream. This will passed to the subject detail generator and can be used to generate subjects. If "" it will use individual topics for the streams by default.
 	StreamName string
 
+	//Config for the individual stream
+	StreamConfig StreamConfig
+
 	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects and QueueGroup.
 	SubjectDetailGenerator SubjectDetailGenerator
 }
@@ -112,6 +115,9 @@ type SubscriberSubscriptionConfig struct {
 	// Stream name is used for the overall stream. This will passed to the subject detail generator and can be used to generate subjects.
 	// If "" it will use individual topics for the streams by default.
 	StreamName string
+
+	//Config for the individual stream
+	StreamConfig StreamConfig
 
 	// SubjectDetailGenerator is a function used to generate a SubjectDetailer interface which is used to generate subjects.
 	SubjectDetailGenerator SubjectDetailGenerator
@@ -230,6 +236,7 @@ func NewSubscriberWithNatsConn(conn *nats.Conn, config SubscriberSubscriptionCon
 
 		manager, err = newStreamManager(
 			js,
+			config.StreamConfig,
 			config.SubjectDetailGenerator(config.StreamName, config.QueueGroupPrefix),
 			config.SubjectCalculator,
 			config.QueueGroupPrefix,
