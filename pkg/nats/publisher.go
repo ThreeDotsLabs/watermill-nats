@@ -171,17 +171,17 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		}
 	}
 
-	topicToSend := p.streamManager.Subject(topic)
+	subject := p.streamManager.Subject(topic)
 
 	for _, msg := range messages {
 		messageFields := watermill.LogFields{
 			"message_uuid": msg.UUID,
-			"topic_name":   topicToSend,
+			"topic_name":   subject,
 		}
 
 		p.logger.Trace("Publishing message", messageFields)
 
-		natsMsg, err := p.config.Marshaler.Marshal(topicToSend, msg)
+		natsMsg, err := p.config.Marshaler.Marshal(subject, msg)
 		if err != nil {
 			return err
 		}
