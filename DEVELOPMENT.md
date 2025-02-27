@@ -7,8 +7,6 @@ subscriptions.  This lies far enough outside the streaming use cases of watermil
 experimental fashion only but should work if resources are provisioned correctly.  It can be nice to use watermill
 as the sole interface to NATS in such a system if eg request/reply is not needed.
 
-There is also an experimental `/pkg/jetstream` package that tracks with the experimental upstream
-[JetStream API](https://github.com/nats-io/nats.go/blob/main/jetstream/README.md).  This is targeted for a
-stable API within watermill by v2.1 of this package.  Right now it only supports a very minimal configuration
-subset but does make an effort to preserve lower level access to the underlying stream provisioning API.  You can
+There is also the `/pkg/jetstream` package that tracks with the upstream
+[JetStream API](https://github.com/nats-io/nats.go/blob/main/jetstream/README.md). You can
 see an example [here](./_examples/jetstream_new.go).
