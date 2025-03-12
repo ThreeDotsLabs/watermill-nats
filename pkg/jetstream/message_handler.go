@@ -13,7 +13,7 @@ type handleFunc = func(ctx context.Context, msg jetstream.Msg, output chan *mess
 
 // handleMsg provides the core processing logic for a single JetStream message
 func (s *Subscriber) handleMsg(ctx context.Context, msg jetstream.Msg, output chan *message.Message) {
-	m, err := unmarshal(msg)
+	m, err := s.unmarshaler.Unmarshal(msg)
 	if err != nil {
 		s.logger.Error("cannot unmarshal message", err, nil)
 	}

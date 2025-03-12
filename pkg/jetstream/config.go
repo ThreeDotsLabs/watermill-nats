@@ -58,6 +58,8 @@ type SubscriberConfig struct {
 
 	// AckAsync enables asynchronous acknowledgement
 	AckAsync bool
+
+	Unmarshaler Unmarshaler
 }
 
 // setDefaults sets default values needed for a subscriber if unset
@@ -80,5 +82,9 @@ func (s *SubscriberConfig) setDefaults() {
 
 	if s.ConfigureConsumer == nil {
 		s.ConfigureConsumer = defaultConsumerConfigurator
+	}
+
+	if s.Unmarshaler == nil {
+		s.Unmarshaler = DefaultUnmarshaler{}
 	}
 }
