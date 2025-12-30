@@ -20,6 +20,9 @@ type PublisherConfig struct {
 	Logger watermill.LoggerAdapter
 	// ConfigureStream is a custom function that can be used to define stream configuration from a topic.  Publisher uses it to calculate publish destination from topic.
 	ConfigureStream StreamConfigurator
+
+	// TrackMsgId sets Nats-Msg-Id to the msg UUID to prevent duplication (needed for exactly once processing).
+	TrackMsgId bool
 }
 
 // setDefaults sets default values needed for a publisher if unset
