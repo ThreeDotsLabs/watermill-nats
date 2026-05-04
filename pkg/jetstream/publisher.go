@@ -61,7 +61,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	streamConfig := p.configureStream(topic)
 	for _, m := range messages {
 		// TODO: how can we handle eg routing metadata without fallback to *nats.Msg
-		nm, err := p.m.Marshal(streamConfig.Name, m)
+		nm, err := p.m.Marshal(streamConfig.Subjects[0], m)
 		if err != nil {
 			return fmt.Errorf("failed to marshal: %w", err)
 		}
