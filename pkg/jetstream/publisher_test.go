@@ -42,8 +42,8 @@ func TestPublisher_TrackMsgID_SetsNatsMsgIdHeader(t *testing.T) {
 	require.NoError(t, ncSub.Flush())
 
 	pub, err := jetstream.NewPublisher(jetstream.PublisherConfig{
-		URL:        nats.DefaultURL,
-		TrackMsgID: true,
+		URL:            nats.DefaultURL,
+		TrackMessageID: true,
 	})
 	require.NoError(t, err)
 	defer func() { _ = pub.Close() }()
