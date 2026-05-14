@@ -20,6 +20,7 @@ type Publisher struct {
 	m               wmnats.Marshaler
 	logger          watermill.LoggerAdapter
 	configureStream StreamConfigurator
+	trackMsgId      bool
 }
 
 // NewPublisher creates a new watermill JetStream publisher.
@@ -53,6 +54,7 @@ func newPublisher(nc *nats.Conn, config *PublisherConfig) (*Publisher, error) {
 		m:               &wmnats.NATSMarshaler{},
 		logger:          config.Logger,
 		configureStream: config.ConfigureStream,
+		trackMsgId:      config.TrackMsgId,
 	}, nil
 }
 
@@ -64,6 +66,13 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		nm, err := p.m.Marshal(streamConfig.Name, m)
 		if err != nil {
 			return fmt.Errorf("failed to marshal: %w", err)
+		}
+
+		if p.trackMsgId && m.UUID != "" {
+			if nm.Header == nil {
+				nm.Header = make(nats.Header)
+			}
+			nm.Header.Set(nats.MsgIdHdr, m.UUID)
 		}
 
 		_, err = p.js.PublishMsg(context.Background(), nm) //marshal
