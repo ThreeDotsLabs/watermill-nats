@@ -88,7 +88,7 @@ func newPubSub(t *testing.T, clientID string, queueName string, exactlyOnce bool
 		ConnectOptions:   jetstreamOptions,
 		SubscribeOptions: subscribeOptions,
 		PublishOptions:   nil,
-		TrackMsgId:       exactlyOnce,
+		TrackMsgID:       exactlyOnce,
 		AckAsync:         !exactlyOnce,
 		DurablePrefix:    queueName,
 	}

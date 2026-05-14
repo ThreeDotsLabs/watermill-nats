@@ -41,7 +41,7 @@ func (j jsConnection) QueueSubscribe(s string, q string, handler nats.MsgHandler
 func (j jsConnection) PublishMsg(msg *nats.Msg) (err error) {
 	publishOpts := j.cfg.PublishOptions
 
-	if j.cfg.TrackMsgId {
+	if j.cfg.TrackMsgID {
 		if msgID := msg.Header.Get(WatermillUUIDHdr); msgID != "" {
 			publishOpts = append(publishOpts, nats.MsgId(msgID))
 		}

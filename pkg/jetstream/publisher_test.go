@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPublisher_TrackMsgId_SetsNatsMsgIdHeader(t *testing.T) {
+func TestPublisher_TrackMsgID_SetsNatsMsgIdHeader(t *testing.T) {
 	ctx := context.Background()
 
 	topic := "watermill_test_" + watermill.NewShortUUID()
@@ -43,7 +43,7 @@ func TestPublisher_TrackMsgId_SetsNatsMsgIdHeader(t *testing.T) {
 
 	pub, err := jetstream.NewPublisher(jetstream.PublisherConfig{
 		URL:        nats.DefaultURL,
-		TrackMsgId: true,
+		TrackMsgID: true,
 	})
 	require.NoError(t, err)
 	defer func() { _ = pub.Close() }()
@@ -57,7 +57,7 @@ func TestPublisher_TrackMsgId_SetsNatsMsgIdHeader(t *testing.T) {
 	assert.Equal(t, wmMsg.UUID, natsMsg.Header.Get(nats.MsgIdHdr))
 }
 
-func TestPublisher_TrackMsgId_Disabled_DoesNotSetNatsMsgIdHeader(t *testing.T) {
+func TestPublisher_TrackMsgID_Disabled_DoesNotSetNatsMsgIdHeader(t *testing.T) {
 	ctx := context.Background()
 
 	topic := "watermill_test_" + watermill.NewShortUUID()
