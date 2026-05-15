@@ -47,7 +47,7 @@ func main() {
 		ConnectOptions:   nil,
 		SubscribeOptions: subscribeOptions,
 		PublishOptions:   nil,
-		TrackMsgId:       false,
+		TrackMsgID:       false,
 		AckAsync:         false,
 		DurablePrefix:    "",
 	}

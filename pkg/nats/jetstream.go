@@ -19,8 +19,8 @@ type JetStreamConfig struct {
 	// PublishOptions contains options to be sent on every publish operation
 	PublishOptions []nats.PubOpt
 
-	// TrackMsgId uses the Nats.MsgId option with the msg UUID to prevent duplication (needed for exactly once processing)
-	TrackMsgId bool
+	// TrackMsgID uses the Nats.MsgId option with the msg UUID to prevent duplication (needed for exactly once processing)
+	TrackMsgID bool
 
 	// AckAsync enables asynchronous acknowledgement
 	AckAsync bool
