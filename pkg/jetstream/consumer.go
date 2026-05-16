@@ -126,11 +126,16 @@ func consume(ctx context.Context,
 ) (chan *message.Message, error) {
 	output := make(chan *message.Message)
 
-	// TODO: this is the closest analog to callback based subscriptions in watermill-nats/pkg/nats
-	// add support for batching pull consumers using consumer.Fetch / FetchNoWait
+	// Use Fetch with PullMaxMessages=1 to avoid pre-buffering.
+	// consumer.Consume() pre-fetches messages internally, causing the NATS ackWait
+	// clock to start ticking before the handler sees the message. Over time,
+	// a backlog causes NATS to redeliver messages that were still being processed.
+	fetchOpts := append([]jetstream.PullConsumeOpt{}, pullConsumeOpts...)
+	fetchOpts = append(fetchOpts, jetstream.PullMaxMessages(1))
+
 	cc, err := consumer.Consume(func(msg jetstream.Msg) {
 		cb(ctx, msg, output)
-	}, pullConsumeOpts...)
+	}, fetchOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start jetstream consumer: %w", err)
 	}
